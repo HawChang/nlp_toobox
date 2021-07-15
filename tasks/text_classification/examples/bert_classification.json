@@ -1,0 +1,147 @@
+{
+  "dataloader": {
+    "tools": {
+      "tokenizer,keep_tokens,vocab_size": {
+        "type": "tokenizers",
+        "class": "BertTokenizer",
+        "vocab_path": "../state_dict/ernie-1.0/vocab.txt",
+        "simplified": true,
+        "max_length": 512
+      },
+      "label_encoder,num_class": {
+        "type": "tokenizers",
+        "class": "LabelEncoder",
+        "vocab_path": "../dataset/classification_data/toutiao_news/class_id.txt"
+      }
+    },
+    "loaders": {
+      "train_dataloader": {
+        "type": "BertClassificationDataLoader",
+        "inputs": [
+          {
+            "fetch_dict": {
+              "text": "first_text",
+              "keywords": "second_text"
+            },
+            "type": "BasicTextInput",
+            "config": {
+              "need_tool": "tokenizer"
+            }
+          },
+          {
+            "fetch_dict": {
+              "label": "label"
+            },
+            "type": "ScalarInput",
+            "config": {
+              "need_tool": "label_encoder"
+            }
+          }
+        ],
+        "config": {
+          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_shrink.txt",
+          "encoding": "utf-8",
+          "header": true,
+          "sampler": null,
+          "shuffle": false,
+          "batch_size": 64
+        }
+      },
+      "eval_dataloader": {
+        "type": "BertClassificationDataLoader",
+        "inputs": [
+          {
+            "fetch_dict": {
+              "text": "first_text",
+              "keywords": "second_text"
+            },
+            "type": "BasicTextInput",
+            "config": {
+              "need_tool": "tokenizer"
+            }
+          },
+          {
+            "fetch_dict": {
+              "label": "label"
+            },
+            "type": "ScalarInput",
+            "config": {
+              "need_tool": "label_encoder"
+            }
+          }
+        ],
+        "config": {
+          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_test.txt",
+          "encoding": "utf-8",
+          "header": true,
+          "sampler": null,
+          "shuffle": false,
+          "batch_size": 64
+        }
+      },
+      "infer_dataloader": {
+        "type": "BertClassificationDataLoader",
+        "inputs": [
+          {
+            "fetch_dict": {
+              "text": "first_text",
+              "keywords": "second_text"
+            },
+            "type": "BasicTextInput",
+            "config": {
+              "need_tool": "tokenizer"
+            }
+          }
+        ],
+        "config": {
+          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_test.txt",
+          "encoding": "utf-8",
+          "header": true,
+          "sampler": null,
+          "shuffle": false,
+          "batch_size": 64,
+          "is_infer": true
+        }
+      }
+    }
+  },
+  "model": {
+    "type": "BertClassification",
+    "build_config": {
+      "pretrained_model_dir": "../state_dict/ernie-1.0/",
+      "vocab_size": "auto",
+      "num_class": "auto",
+      "keep_tokens": "auto",
+      "label_encoder": "auto"
+    }
+  },
+  "run_config": {
+    "model_save_path": "./output/bert_classification",
+    "best_model_save_path": "./output/bert_classification_best",
+    "train": {
+      "enable": true,
+      "epochs": 1,
+      "print_step": 20,
+      "load_best_model": false,
+      "scheduler_mode": "cosine",
+      "warm_up": 0.1,
+      "swa": false,
+      "swa_start_epoch": 5,
+      "swa_anneal_epoch": 3,
+      "learning_rate": [5e-5, 1e-3],
+      "swa_lr": [5e-5, 1e-3],
+      "adversarial_training": false
+    },
+    "eval": {
+      "enable": true,
+      "print_step": 200
+    },
+    "infer": {
+      "enable": true,
+      "print_step": 200,
+      "fetch_list": ["sent_softmax"],
+      "confidence": 0.3,
+      "infer_res_path": "./output/bert_classification_infer_res"
+    }
+  }
+}
