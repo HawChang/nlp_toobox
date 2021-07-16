@@ -571,7 +571,6 @@ class BaseModel(object):
         """
         # get_loss和single_batch_infer不同
         # 其需要保存梯度等信息
-        infer_res = self.single_batch_infer(inputs)
         for k, v in inputs.items():
             # 将输入tensor放到对应device
             # 只有tensor才放 其余的参数不变
@@ -606,15 +605,15 @@ class ClassificationModel(BaseModel):
         self.best_acc = best_acc
         self.label_encoder = label_encoder
 
-    def get_loss(self, **inputs):
-        for k, v in inputs.items():
-            inputs[k] = v.to(self.device)
+    #def get_loss(self, **inputs):
+    #    for k, v in inputs.items():
+    #        inputs[k] = v.to(self.device)
 
-        infer_res = self.model(**inputs)
+    #    infer_res = self.model(**inputs)
 
-        loss = infer_res["loss"]
+    #    loss = infer_res["loss"]
 
-        return loss
+    #    return loss
 
     def infer(self, *args, **kwargs):
        infer_res_dict =  super(ClassificationModel, self).infer(*args, **kwargs)
@@ -1259,15 +1258,15 @@ class BertSeq2seqModel(Seq2seqModel):
         super(BertSeq2seqModel, self).__init__(*args, **kwargs)
         self.min_loss = None
 
-    def get_loss(self, **batch):
-        for k, v in batch.items():
-            batch[k] = v.to(self.device)
+    #def get_loss(self, **batch):
+    #    for k, v in batch.items():
+    #        batch[k] = v.to(self.device)
 
-        infer_res = self.model(**batch)
+    #    infer_res = self.model(**batch)
 
-        loss = infer_res["loss"]
+    #    loss = infer_res["loss"]
 
-        return loss
+    #    return loss
 
     def train(self, *args, **kwargs):
         # TODO Seq2seqModel应该没有label_encoder

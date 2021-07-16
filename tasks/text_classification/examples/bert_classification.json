@@ -39,7 +39,7 @@
           }
         ],
         "config": {
-          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_train.txt",
+          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_train_shrink.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
