@@ -125,7 +125,7 @@ class TextCNNMatching(nn.Module):
                 res_dict["each_loss"] = triplet_loss
 
                 mean_loss = triplet_loss.mean()
-                res_dict["loss"] = triplet_loss
+                res_dict["loss"] = mean_loss
                 #logging.info("triplet_loss: {}".format(triplet_loss))
 
             elif labels is not None:

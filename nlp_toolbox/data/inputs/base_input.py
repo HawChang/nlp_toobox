@@ -9,9 +9,8 @@ Desc  :
 
 
 class BaseInput(object):
-    def __init__(self, config, feed_list):
+    def __init__(self, config):
         self.config = config
-        self.feed_list = feed_list
 
     def encode(self, *args, **kwargs):
         raise NotImplementedError

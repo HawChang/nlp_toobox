@@ -279,7 +279,7 @@ class BaseModel(object):
                     # 加入对抗扰动
                     fgm.attack(emb_name="word_embeddings.")
                     # 再计算loss
-                    loss_adv = self.get_loss(*cur_train_batch)
+                    loss_adv = self.get_loss(**cur_train_batch)
                     # 反传 累加梯度
                     loss_adv.backward()
                     # 恢复emb参数
@@ -566,10 +566,21 @@ class BaseModel(object):
         """
         raise NotImplementedError
 
-    def get_loss(self, *args, **kwargs):
+    def get_loss(self, **inputs):
         """训练时如何得到loss
         """
-        raise NotImplementedError
+        # get_loss和single_batch_infer不同
+        # 其需要保存梯度等信息
+        infer_res = self.single_batch_infer(inputs)
+        for k, v in inputs.items():
+            # 将输入tensor放到对应device
+            # 只有tensor才放 其余的参数不变
+            if isinstance(v, torch.Tensor) and v.device != self.device:
+                inputs[k] = v.to(self.device)
+
+        forward_res = self.model(**inputs)
+
+        return forward_res["loss"]
 
     def eval(self, eval_dataloader, print_step=50, gather_loss=False, **kwargs):
         """模型评估
@@ -644,8 +655,8 @@ class ClassificationModel(BaseModel):
                 cur_eval_step += 1
                 cur_label_ids = cur_eval_batch["labels"]
                 del cur_eval_batch["labels"]
-                cur_logits = self.single_batch_infer(cur_eval_batch)
-                cur_pred = cur_logits["sent_softmax"].argmax(dim=-1)
+                cur_infer_res = self.single_batch_infer(cur_eval_batch)
+                cur_pred = cur_infer_res["sent_softmax"].detach().argmax(dim=-1)
                 cur_label = cur_label_ids.detach()
                 all_pred.append(cur_pred)
                 all_label.append(cur_label)
@@ -709,16 +720,6 @@ class SimModel(BaseModel):
         self.min_loss = min_loss
         self.eval_type = None
 
-    def get_loss(self, **inputs):
-        for k, v in inputs.items():
-            inputs[k] = v.to(self.device)
-
-        infer_res = self.model(**inputs)
-
-        loss = infer_res["loss"]
-
-        return loss
-
     def infer(self, *args, **kwargs):
        infer_res_dict =  super(SimModel, self).infer(*args, **kwargs)
 
@@ -745,10 +746,6 @@ class SimModel(BaseModel):
         start_time = time.time()
         res_dict = defaultdict(list)
 
-        #loss_list = list()
-        #all_pred = list()
-        #all_label = list()
-
         # 主进程的训练展示进度
         if self.is_master:
             pbar = tqdm(total=len(eval_dataloader), desc="eval progress")
@@ -764,18 +761,18 @@ class SimModel(BaseModel):
                 elif InstanceName.LABEL_IDS in cur_eval_batch:
                     self.eval_type = "pointwise"
 
-                if self.eval_type == "pairwise":
-                    loss = self.get_loss(**cur_eval_batch)
-                    # 保存loss时 先将其detach 不然保存的不只是loss 还有整个计算图
-                    res_dict["each_loss"].append(loss.detach().view(-1, 1))
-                    #loss_list.append(loss.detach().view(-1, 1))
-                elif self.eval_type == "pointwise":
+                if self.eval_type == "pointwise":
                     cur_label_ids = cur_eval_batch["labels"]
                     cur_label = cur_label_ids.detach()
                     res_dict["label"].append(cur_label.to(self.device))
                     del cur_eval_batch["labels"]
 
-                    cur_infer_res = self.single_batch_infer(cur_eval_batch)
+                cur_infer_res = self.single_batch_infer(cur_eval_batch)
+
+                if self.eval_type == "pairwise":
+                    # 保存loss时 先将其detach 不然保存的不只是loss 还有整个计算图
+                    res_dict["each_loss"].append(cur_infer_res["each_loss"].detach().view(-1, 1))
+                elif self.eval_type == "pointwise":
                     cur_pred = cur_infer_res["second_sim"].detach()
                     res_dict["pred"].append(cur_pred)
 
@@ -829,49 +826,6 @@ class SimModel(BaseModel):
                 acc = (np.array(all_label) == np.array(all_pred)).astype(np.float32).mean()
                 logging.info("rank {} eval acc : {}".format(self.local_rank, acc))
                 return acc
-
-
-        #if self.eval_type == "pairwise":
-        #    total_loss = torch.cat(loss_list, dim=0)
-        #    if self.distributed:
-        #        total_loss = self.gather_distributed_tensor(total_loss, len(eval_dataloader))
-        #    #logging.info("total loss gather : {}".format(total_loss))
-        #    total_loss = total_loss.mean().cpu().numpy()
-        #    #logging.info("total loss numpy : {}".format(total_loss))
-        #    logging.info("rank {} eval loss = {}.".format(self.local_rank, total_loss))
-
-        #    return total_loss
-
-        #elif self.eval_type == "pointwise":
-        #    # pred是模型预测的结果 模型是在self.device上的
-        #    all_pred = torch.cat(all_pred, dim=0)
-        #    # label是直接从dataloader拿的数据 还没有放在self.device上
-        #    logging.info("self device: {}".format(self.device))
-        #    all_label = torch.cat(all_label, dim=0)
-        #    logging.info("all device: {}".format(all_label.device))
-        #    all_label = all_label.to(self.device)
-        #    logging.info("all device: {}".format(all_label.device))
-
-        #    logging.debug("all pred shape: {}".format(all_pred.shape))
-        #    logging.debug("all label shape: {}".format(all_label.shape))
-
-        #    if self.distributed:
-        #        all_pred = self.gather_distributed_tensor(all_pred, len(eval_dataloader.dataset))
-        #        all_label = self.gather_distributed_tensor(all_label, len(eval_dataloader.dataset))
-        #        logging.debug("all pred shape: {}".format(all_pred.shape))
-        #        logging.debug("all label shape: {}".format(all_label.shape))
-
-        #    all_pred = all_pred.cpu().numpy()
-        #    all_pred = np.where(all_pred > confidence, 1, 0)
-
-        #    all_label = all_label.cpu().numpy()
-
-        #    logging.debug("eval data size: {}".format(len(all_label)))
-
-        #    logging.info("\n" + classification_report(all_label, all_pred, digits=4))
-        #    acc = (np.array(all_label) == np.array(all_pred)).astype(np.float32).mean()
-        #    logging.info("rank {} eval acc : {}".format(self.local_rank, acc))
-        #    return acc
 
     def check_if_best(self, cur_eval_res):
         """根据评估结果判断是否最优

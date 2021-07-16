@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-File  :   scalar_input.py
+File  :   label_input.py
 Author:   zhanghao55@baidu.com
 Date  :   21/06/25 14:45:22
 Desc  :   
@@ -13,10 +13,11 @@ from nlp_toolbox.utils.register import RegisterSet
 
 
 @RegisterSet.inputs.register
-class ScalarInput(BaseInput):
+class LabelInput(BaseInput):
     def __init__(self, config):
-        super(ScalarInput, self).__init__(config)
+        super(LabelInput, self).__init__(config)
+        self.label_encoder = config[InstanceName.LABEL_ENCODER]
 
     def encode(self, label):
         return {InstanceName.LABEL_IDS: \
-                [int(cur_label) for cur_label in label]}
+                [self.label_encoder.encode(cur_label) for cur_label in label]}

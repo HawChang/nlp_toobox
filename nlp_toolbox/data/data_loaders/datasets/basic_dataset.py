@@ -46,8 +46,8 @@ class BasicDataset(Dataset):
             #if input_name == "second_input_ids":
             #    #logging.info("second_input_ids type: {}".format(self.data_list_dict[input_name]))
             #    logging.info("second_input_ids[0] type: {}".format(type(self.data_list_dict[input_name][0])))
-            logging.info("{} shape: {}".format(input_name, self.data_list_dict[input_name].shape))
-        logging.info("data_list shape: ({},{})".format(self.data_size, len(self.data_list_dict.keys())))
+            logging.debug("{} shape: {}".format(input_name, self.data_list_dict[input_name].shape))
+        logging.debug("data_list shape: ({},{})".format(self.data_size, len(self.data_list_dict.keys())))
 
     def __getitem__(self, index):
         # 得到单个数据

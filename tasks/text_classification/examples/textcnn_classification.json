@@ -16,10 +16,10 @@
     },
     "loaders": {
       "train_dataloader": {
-        "type": "BertClassificationDataLoader",
+        "type": "BasicDataLoader",
         "inputs": [
           {
-            "fetch_dict": {
+            "feed_dict": {
               "text": "first_text",
               "keywords": "second_text"
             },
@@ -29,17 +29,17 @@
             }
           },
           {
-            "fetch_dict": {
+            "feed_dict": {
               "label": "label"
             },
-            "type": "ScalarInput",
+            "type": "LabelInput",
             "config": {
               "need_tool": "label_encoder"
             }
           }
         ],
         "config": {
-          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_shrink.txt",
+          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_train_shrink.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
@@ -48,10 +48,10 @@
         }
       },
       "eval_dataloader": {
-        "type": "BertClassificationDataLoader",
+        "type": "BasicDataLoader",
         "inputs": [
           {
-            "fetch_dict": {
+            "feed_dict": {
               "text": "first_text",
               "keywords": "second_text"
             },
@@ -61,10 +61,10 @@
             }
           },
           {
-            "fetch_dict": {
+            "feed_dict": {
               "label": "label"
             },
-            "type": "ScalarInput",
+            "type": "LabelInput",
             "config": {
               "need_tool": "label_encoder"
             }
@@ -80,10 +80,10 @@
         }
       },
       "infer_dataloader": {
-        "type": "BertClassificationDataLoader",
+        "type": "BasicDataLoader",
         "inputs": [
           {
-            "fetch_dict": {
+            "feed_dict": {
               "text": "first_text",
               "keywords": "second_text"
             },
@@ -124,7 +124,7 @@
     "best_model_save_path": "./output/texcnn_classification_best",
     "train": {
       "enable": true,
-      "epochs": 20,
+      "epochs": 10,
       "print_step": 20,
       "load_best_model": false,
       "scheduler_mode": "cosine",
@@ -144,7 +144,7 @@
       "enable": true,
       "print_step": 200,
       "fetch_list": ["sent_softmax"],
-      "infer_res_path": "./output/text_classification_infer_res"
+      "infer_res_path": "./output/textcnn_classification_infer_res"
     }
   }
 }

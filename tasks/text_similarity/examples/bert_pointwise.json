@@ -15,7 +15,7 @@
         "inputs": [
           {
             "feed_dict": {
-              "anchor": "first_text"
+              "text_a": "first_text"
             },
             "type": "BasicTextInput",
             "config": {
@@ -27,7 +27,7 @@
           },
           {
             "feed_dict": {
-              "pos": "first_text"
+              "text_b": "first_text"
             },
             "type": "BasicTextInput",
             "config": {
@@ -39,19 +39,16 @@
           },
           {
             "feed_dict": {
-              "neg": "first_text"
+              "label": "label"
             },
-            "type": "BasicTextInput",
-            "config": {
-              "need_tool": "tokenizer"
-            },
+            "type": "ScalarInput",
             "fetch_dict": {
-              "input_ids": "third_input_ids"
+              "labels": "labels"
             }
           }
         ],
         "config": {
-          "data_dir": "../dataset/text_similarity/feed_audit_data/feed_audit_data_pairwise_train_sample.txt",
+          "data_dir": "../dataset/text_similarity/feed_audit_data/feed_audit_data_pointwise_train_sample.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
@@ -147,25 +144,21 @@
     }
   },
   "model": {
-    "type": "TextCNNSimilarity",
+    "type": "BertMatching",
     "build_config": {
+      "pretrained_model_dir": "../state_dict/ernie-1.0/",
       "vocab_size": "auto",
-      "emb_dim": 128,
-      "num_filters": 64,
-      "num_channels": 1,
-      "win_size_list": [3, 7],
-      "output_dim": 128,
-      "emb_sparse": false,
-      "label_smooth_ratio": null,
-      "margin": 0.6
+      "keep_tokens": "auto",
+      "pool_out_size": 128,
+      "margin": 0.5
     }
   },
   "run_config": {
-    "model_save_path": "./output/textcnn_pairwise_similarity",
-    "best_model_save_path": "./output/textcnn_pairwise_similarity_best",
+    "model_save_path": "./output/bert_pointwise_similarity",
+    "best_model_save_path": "./output/bert_pointwise_similarity_best",
     "train": {
       "enable": true,
-      "epochs": 10,
+      "epochs": 2,
       "print_step": 20,
       "load_best_model": true,
       "scheduler_mode": "cosine",
@@ -173,7 +166,7 @@
       "swa": false,
       "swa_start_epoch": 5,
       "swa_anneal_epoch": 3,
-      "learning_rate": 1e-2,
+      "learning_rate": 1e-4,
       "swa_lr": 1e-4,
       "adversarial_training": false
     },
@@ -182,11 +175,11 @@
       "print_step": 200
     },
     "infer": {
-      "enable": false,
+      "enable": true,
       "print_step": 200,
       "fetch_list": ["sent_vec", "second_sim"],
       "confidence": 0.5,
-      "infer_res_path": "./output/textcnn_pairwise_similarity_infer_res"
+      "infer_res_path": "./output/bert_pointwise_similarity_infer_res"
     }
   }
 }

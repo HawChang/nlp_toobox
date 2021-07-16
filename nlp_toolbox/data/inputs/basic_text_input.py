@@ -16,8 +16,8 @@ from nlp_toolbox.utils.manual_config import InstanceName
 
 @RegisterSet.inputs.register
 class BasicTextInput(BaseInput):
-    def __init__(self, config, feed_list):
-        super(BasicTextInput, self).__init__(config, feed_list)
+    def __init__(self, config):
+        super(BasicTextInput, self).__init__(config)
         self.tokenizer = self.config[InstanceName.TOKENIZER]
         self.min_seq_len = self.config.get(InstanceName.MIN_SEQ_LEN, None)
         self.pad_idx = self.config.get(InstanceName.PAD_IDX, 0)

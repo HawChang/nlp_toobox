@@ -16,10 +16,10 @@
     },
     "loaders": {
       "train_dataloader": {
-        "type": "BertClassificationDataLoader",
+        "type": "BasicDataLoader",
         "inputs": [
           {
-            "fetch_dict": {
+            "feed_dict": {
               "text": "first_text",
               "keywords": "second_text"
             },
@@ -29,17 +29,17 @@
             }
           },
           {
-            "fetch_dict": {
+            "feed_dict": {
               "label": "label"
             },
-            "type": "ScalarInput",
+            "type": "LabelInput",
             "config": {
               "need_tool": "label_encoder"
             }
           }
         ],
         "config": {
-          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_shrink.txt",
+          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_train_shrink.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
@@ -48,10 +48,10 @@
         }
       },
       "eval_dataloader": {
-        "type": "BertClassificationDataLoader",
+        "type": "BasicDataLoader",
         "inputs": [
           {
-            "fetch_dict": {
+            "feed_dict": {
               "text": "first_text",
               "keywords": "second_text"
             },
@@ -61,10 +61,10 @@
             }
           },
           {
-            "fetch_dict": {
+            "feed_dict": {
               "label": "label"
             },
-            "type": "ScalarInput",
+            "type": "LabelInput",
             "config": {
               "need_tool": "label_encoder"
             }
@@ -80,10 +80,10 @@
         }
       },
       "infer_dataloader": {
-        "type": "BertClassificationDataLoader",
+        "type": "BasicDataLoader",
         "inputs": [
           {
-            "fetch_dict": {
+            "feed_dict": {
               "text": "first_text",
               "keywords": "second_text"
             },
@@ -111,9 +111,9 @@
       "vocab_size": "auto",
       "num_class": "auto",
       "label_encoder": "auto",
-      "emb_dim": 128,
+      "emb_dim": 256,
       "gru_dim": 256,
-      "gru_layers": 1,
+      "gru_layers": 2,
       "fc_hid_dim": 256,
       "emb_sparse": false,
       "bidirection": true
@@ -123,7 +123,7 @@
     "model_save_path": "./output/gru_classification",
     "best_model_save_path": "./output/gru_classification_best",
     "train": {
-      "enable": false,
+      "enable": true,
       "epochs": 10,
       "print_step": 20,
       "load_best_model": false,
@@ -132,12 +132,12 @@
       "swa": false,
       "swa_start_epoch": 5,
       "swa_anneal_epoch": 3,
-      "learning_rate": 4e-3,
+      "learning_rate": 1e-3,
       "swa_lr": 1e-4,
       "adversarial_training": false
     },
     "eval": {
-      "enable": false,
+      "enable": true,
       "print_step": 200
     },
     "infer": {

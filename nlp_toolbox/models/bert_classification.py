@@ -21,9 +21,6 @@ class BertClassification(ClassificationModel):
     def init_model(self, pretrained_model_dir, **kwargs):
         model = BertForClassification.from_pretrained(
                 pretrained_model_dir,
-                #vocab_size=dataloader_bundle.tool_dict[InstanceName.TOKENIZER].vocab_size,
-                #num_class=dataloader_bundle.tool_dict[InstanceName.LABEL_ENCODER].size(),
-                #keep_tokens=dataloader_bundle.tool_dict[InstanceName.KEEP_TOKENS],
                 **kwargs
                 )
         return model
