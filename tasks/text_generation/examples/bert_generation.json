@@ -1,0 +1,136 @@
+{
+  "dataloader": {
+    "tools": {
+      "tokenizer,keep_tokens,vocab_size": {
+        "type": "tokenizers",
+        "class": "BertTokenizer",
+        "vocab_path": "../state_dict/ernie-1.0/vocab.txt",
+        "simplified": true,
+        "max_length": 512
+      }
+    },
+    "loaders": {
+      "train_dataloader": {
+        "type": "BasicDataLoader",
+        "inputs": [
+          {
+            "feed_dict": {
+              "text_a": "first_text",
+              "text_b": "second_text"
+            },
+            "type": "BasicTextInput",
+            "config": {
+              "need_tool": "tokenizer"
+            },
+            "fetch_dict": {
+              "input_ids": "input_ids",
+              "token_type_ids": "token_type_ids"
+            }
+          }
+        ],
+        "config": {
+          "data_dir": "../dataset/seq_sim/seqsim_data_sample_res_shrink.txt",
+          "encoding": "utf-8",
+          "header": true,
+          "sampler": null,
+          "shuffle": false,
+          "batch_size": 16 
+        }
+      },
+      "eval_dataloader": {
+        "type": "BasicDataLoader",
+        "inputs": [
+          {
+            "feed_dict": {
+              "text_a": "first_text",
+              "text_b": "second_text"
+            },
+            "type": "BasicTextInput",
+            "config": {
+              "need_tool": "tokenizer"
+            },
+            "fetch_dict": {
+              "input_ids": "input_ids",
+              "token_type_ids": "token_type_ids"
+            }
+          }
+        ],
+        "config": {
+          "data_dir": "../dataset/seq_sim/seqsim_data_sample_res_shrink.txt",
+          "encoding": "utf-8",
+          "header": true,
+          "sampler": null,
+          "shuffle": false,
+          "batch_size": 16
+        }
+      },
+      "infer_dataloader": {
+        "type": "BasicDataLoader",
+        "inputs": [
+          {
+            "feed_dict": {
+              "text_a": "first_text"
+            },
+            "type": "BasicTextInput",
+            "config": {
+              "need_tool": "tokenizer"
+            },
+            "fetch_dict": {
+              "input_ids": "input_ids",
+              "token_type_ids": "token_type_ids"
+            }
+          }
+        ],
+        "config": {
+          "data_dir": "../dataset/seq_sim/seqsim_data_sample_res_shrink.txt",
+          "encoding": "utf-8",
+          "header": true,
+          "sampler": null,
+          "shuffle": false,
+          "batch_size": 1,
+          "is_infer": true
+        }
+      }
+    }
+  },
+  "model": {
+    "type": "BertSeqSim",
+    "build_config": {
+      "pretrained_model_dir": "../state_dict/ernie-1.0/",
+      "vocab_size": "auto",
+      "tokenizer": "auto",
+      "keep_tokens": "auto",
+      "pool_out_size": 128,
+      "seq_task": true
+    }
+  },
+  "run_config": {
+    "model_save_path": "./output/bert_seqsim",
+    "best_model_save_path": "./output/bert_seqsim_best",
+    "train": {
+      "enable": true,
+      "epochs": 5,
+      "print_step": 20,
+      "load_best_model": false,
+      "scheduler_mode": "cosine",
+      "warm_up": 0.1,
+      "swa": false,
+      "swa_start_epoch": 5,
+      "swa_anneal_epoch": 3,
+      "learning_rate": 5e-5,
+      "swa_lr": 5e-5,
+      "adversarial_training": false
+    },
+    "eval": {
+      "enable": false,
+      "print_step": 200
+    },
+    "generate": {
+      "enable": true,
+      "beam_size": 3,
+      "beam_group": 5,
+      "max_gen_length": 100,
+      "generate_res_path": "./output/bert_seqsim_generate_res"
+    }
+  }
+}

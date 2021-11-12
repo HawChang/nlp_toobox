@@ -78,7 +78,7 @@ class TextCNNMatching(nn.Module):
         #logging.info("origin diff: {}".format(pos_sim - neg_sim + self.margin))
         return self.relu(neg_sim - pos_sim + self.margin)
 
-    def forward(self, input_ids, second_input_ids=None, third_input_ids=None, labels=None, **kwargs):
+    def forward(self, input_ids, second_input_ids=None, third_input_ids=None, labels=None, only_loss=False, **kwargs):
         """«∞œÚ‘§≤‚
         """
         #print("\n".join(map(lambda ids: "/ ".join([id_2_token[x] for x in ids]), inputs.numpy())))
@@ -133,4 +133,6 @@ class TextCNNMatching(nn.Module):
                 pointwise_loss = self.compute_pointwise_loss(second_sim, labels)
                 res_dict["loss"] = pointwise_loss
 
+        if only_loss:
+            res_dict = {"loss": res_dict["loss"]}
         return res_dict

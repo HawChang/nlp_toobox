@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding:gb18030 -*-
+# -*- coding: utf-8 -*-
 """
 File  :   base_model.py
 Author:   zhanghao55@baidu.com
@@ -31,7 +31,6 @@ def model_distributed(local_rank=None, find_unused_parameters=False, distributed
             local_rank = torch.distributed.get_rank()
         torch.cuda.set_device(local_rank)
         device = torch.device("cuda", local_rank)
-        logging.info("set device {} to rank {}".format(device, local_rank))
     else:
         local_rank = 0
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -40,10 +39,10 @@ def model_distributed(local_rank=None, find_unused_parameters=False, distributed
         def wrapper(self, *args, **kwargs):
             logging.info("model distributed: {}".format(distributed))
             self.device = device
-            # µ±·Ö²¼Ê½ÑµÁ·Ê± local_rankÎª¸÷½ø³ÌÎ¨Ò»ID Îª0µÄÎªÖ÷½ø³Ì
-            # µ±µ¥»úµ¥¿¨ÑµÁ·Ê± local_rankÎª0
+            # å½“åˆ†å¸ƒå¼è®­ç»ƒæ—¶ local_rankä¸ºå„è¿›ç¨‹å”¯ä¸€ID ä¸º0çš„ä¸ºä¸»è¿›ç¨‹
+            # å½“å•æœºå•å¡è®­ç»ƒæ—¶ local_rankä¸º0
             self.local_rank = local_rank
-            # µ±·Ö²¼Ê½ÑµÁ· µ«¸Ã½ø³Ì²»ÊÇÖ÷½ø³ÌÊ± is_masterÎªFalse£¬ÆäÓàÇé¿ö¾ùÎªTrue
+            # å½“åˆ†å¸ƒå¼è®­ç»ƒ ä½†è¯¥è¿›ç¨‹ä¸æ˜¯ä¸»è¿›ç¨‹æ—¶ is_masterä¸ºFalseï¼Œå…¶ä½™æƒ…å†µå‡ä¸ºTrue
             self.is_master = False if local_rank != 0 else True
             model = func(self, *args, **kwargs)
             model.to(self.device)
@@ -52,8 +51,10 @@ def model_distributed(local_rank=None, find_unused_parameters=False, distributed
                         model,
                         device_ids=[self.local_rank],
                         output_device=self.local_rank,
-                        find_unused_parameters=find_unused_parameters)
-            # ·Ö²¼Ê½ÑµÁ·Ê±ÎªTrue
+                        find_unused_parameters=find_unused_parameters,
+                        )
+                logging.info("set find_unused_patameters = {}".format(find_unused_parameters))
+            # åˆ†å¸ƒå¼è®­ç»ƒæ—¶ä¸ºTrue
             self.distributed = distributed
             return model
         return wrapper
@@ -62,26 +63,26 @@ def model_distributed(local_rank=None, find_unused_parameters=False, distributed
 
 class BaseModel(object):
     def __init__(self, *args, **kwargs):
-        """³õÊ¼»¯
+        """åˆå§‹åŒ–
         """
-        # ³õÊ¼»¯Ä£ĞÍÒÔ¼°Ò»ÏµÁĞ²ÎÊı
-        # 1. self.device: µ±Ç°Ä£ĞÍËùÔÚÎ»ÖÃ
-        # 2. self.distributed: ·Ö²¼Ê½ÑµÁ·Ê±ÎªTrue
-        # 3. self.local_rank = 0: µ±·Ö²¼Ê½ÑµÁ·Ê± local_rankÎª¸÷½ø³ÌÎ¨Ò»ID Îª0µÄÎªÖ÷½ø³Ì
-        #                         µ±µ¥»úµ¥¿¨ÑµÁ·Ê± local_rankÎª0
-        # 4. self.model: Ä£ĞÍ
-        # 5. self.is_master = True: µ±·Ö²¼Ê½ÑµÁ· µ«¸Ã½ø³Ì²»ÊÇÖ÷½ø³ÌÊ± is_masterÎªFalse
-        #                           ÆäÓàÇé¿ö¾ùÎªTrue
+        # åˆå§‹åŒ–æ¨¡å‹ä»¥åŠä¸€ç³»åˆ—å‚æ•°
+        # 1. self.device: å½“å‰æ¨¡å‹æ‰€åœ¨ä½ç½®
+        # 2. self.distributed: åˆ†å¸ƒå¼è®­ç»ƒæ—¶ä¸ºTrue
+        # 3. self.local_rank = 0: å½“åˆ†å¸ƒå¼è®­ç»ƒæ—¶ local_rankä¸ºå„è¿›ç¨‹å”¯ä¸€ID ä¸º0çš„ä¸ºä¸»è¿›ç¨‹
+        #                         å½“å•æœºå•å¡è®­ç»ƒæ—¶ local_rankä¸º0
+        # 4. self.model: æ¨¡å‹
+        # 5. self.is_master = True: å½“åˆ†å¸ƒå¼è®­ç»ƒ ä½†è¯¥è¿›ç¨‹ä¸æ˜¯ä¸»è¿›ç¨‹æ—¶ is_masterä¸ºFalse
+        #                           å…¶ä½™æƒ…å†µå‡ä¸ºTrue
         self.model = self.init_model(*args, **kwargs)
 
     def init_optimizer(self, model, learning_rate, **kwargs):
-        """³õÊ¼»¯ÓÅ»¯Æ÷
+        """åˆå§‹åŒ–ä¼˜åŒ–å™¨
         """
         return torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     def init_scheduler(self, optimizer, iter_num, scheduler_mode="consine", warm_up=None,
             stepsize=1, gamma=0.9, lr_milestones=None, **kwargs):
-        # ÅĞ¶Ïwarm_upÅäÖÃ
+        # åˆ¤æ–­warm_upé…ç½®
         if warm_up is None:
             warm_up_iters = 0
         elif isinstance(warm_up, int):
@@ -92,7 +93,7 @@ class BaseModel(object):
             raise ValueError("expected warm_up in ('None', 'int', 'float'), actual {}".
                     format(type(warm_up)))
 
-        # Ñ§Ï°ÂÊ±ä»¯º¯Êı Ö§³Öcosine, step, multistep
+        # å­¦ä¹ ç‡å˜åŒ–å‡½æ•° æ”¯æŒcosine, step, multistep
         def lr_schedule_func(cur_iter):
             res = None
             if cur_iter < warm_up_iters:
@@ -116,20 +117,20 @@ class BaseModel(object):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_schedule_func)
 
     def save_model(self, save_path):
-        """±£´æÄ£ĞÍ
+        """ä¿å­˜æ¨¡å‹
         """
         start_time = time.time()
         torch.save(self.get_model().state_dict(), save_path)
         logging.info("cost time: %.4fs" % (time.time() - start_time))
 
     def load_model(self, model_path, strict=True):
-        """¼ÓÔØÄ£ĞÍ
+        """åŠ è½½æ¨¡å‹
         """
         if os.path.exists(model_path):
             logging.info("load model from {}".format(model_path))
             start_time = time.time()
-            # ÔÚcpuÉÏ¼ÓÔØÊı¾İ È»ºó¼ÓÔØµ½Ä£ĞÍ
-            # ²»È»ÔÚ·Ö²¼Ê½ÑµÁ·Ê± ¸÷¿¨¶¼»áÔÚcuda:0ÉÏ¼ÓÔØÒ»´ÎÊı¾İ
+            # åœ¨cpuä¸ŠåŠ è½½æ•°æ® ç„¶ååŠ è½½åˆ°æ¨¡å‹
+            # ä¸ç„¶åœ¨åˆ†å¸ƒå¼è®­ç»ƒæ—¶ å„å¡éƒ½ä¼šåœ¨cuda:0ä¸ŠåŠ è½½ä¸€æ¬¡æ•°æ®
             state_dict = torch.load(model_path, map_location=torch.device('cpu'))
             logging.debug("state_dict_names: {}".format(state_dict.keys()))
             self.get_model().load_state_dict(state_dict, strict=strict)
@@ -139,7 +140,7 @@ class BaseModel(object):
             logging.info("cannot find model file: {}".format(model_path))
 
     def get_model(self):
-        """È¡µÃÄ£ĞÍ
+        """å–å¾—æ¨¡å‹
         """
         if self.distributed:
             return self.model.module
@@ -155,44 +156,44 @@ class BaseModel(object):
             swa_start_epoch=None, swa_lr=None,
             swa_anneal_epoch=5, swa_anneal_strategy="cos",
             **kwargs):
-        """ ÑµÁ·torchÄ£ĞÍ
-        [IN]  train_dataloader: DataLoader, ÑµÁ·Êı¾İ
-              eval_dataloader: DataLoader, ÆÀ¹ÀÊı¾İ
-              model_save_path: string, Ä£ĞÍ´æ´¢Â·¾¶
-              best_model_save_path: string, ×îÓÅÄ£ĞÍ´æ´¢Â·¾¶
-              load_best_model: bool, trueÔò¼ÓÔØ×îÓÅÄ£ĞÍ
-              strict: bool, trueÔòload_state_dictÊ±strictÎªtrue
-              epochs:  int, ÑµÁ·ÂÖÊı
-              print_step: int, Ã¿¸öprint_step´òÓ¡ÑµÁ·Çé¿ö
-              learning_rate: Ñ§Ï°ÂÊ
-              scheduler_mode: string, Ñ§Ï°ÂÊÄ£ĞÍ
-              adversarial_training: bool, trueÔò½øĞĞ²ÎÊı¶Ô¿¹ÑµÁ·
-              swa: bool, trueÔòÆô¶¯Ëæ»úÈ¨ÖØÆ½¾ù
-              swa_start_epoch: int, swaÔÚ¸Ãepoch¿ªÊ¼
-              swa_lr: float, swaµÄÄ¿±êÑ§Ï°ÂÊ
-              swa_anneal_epoch: int, ´Ó¿ªÊ¼µÄÑ§Ï°ÂÊ¾­¹ıswa_start_epochÂÖ±ä³ÉÄ¿±êÑ§Ï°ÂÊswa_lr
-              swa_anneal_strategy: string, swa×ª±äÑ§Ï°ÂÊÊ±µÄ²ßÂÔ
-              **kwargs: ÆäËû²ÎÊı
-        [OUT] best_score: float, ÑµÁ·µÃµ½µÄ×îÓÅ·Ö
+        """ è®­ç»ƒtorchæ¨¡å‹
+        [IN]  train_dataloader: DataLoader, è®­ç»ƒæ•°æ®
+              eval_dataloader: DataLoader, è¯„ä¼°æ•°æ®
+              model_save_path: string, æ¨¡å‹å­˜å‚¨è·¯å¾„
+              best_model_save_path: string, æœ€ä¼˜æ¨¡å‹å­˜å‚¨è·¯å¾„
+              load_best_model: bool, trueåˆ™åŠ è½½æœ€ä¼˜æ¨¡å‹
+              strict: bool, trueåˆ™load_state_dictæ—¶strictä¸ºtrue
+              epochs:  int, è®­ç»ƒè½®æ•°
+              print_step: int, æ¯ä¸ªprint_stepæ‰“å°è®­ç»ƒæƒ…å†µ
+              learning_rate: å­¦ä¹ ç‡
+              scheduler_mode: string, å­¦ä¹ ç‡æ¨¡å‹
+              adversarial_training: bool, trueåˆ™è¿›è¡Œå‚æ•°å¯¹æŠ—è®­ç»ƒ
+              swa: bool, trueåˆ™å¯åŠ¨éšæœºæƒé‡å¹³å‡
+              swa_start_epoch: int, swaåœ¨è¯¥epochå¼€å§‹
+              swa_lr: float, swaçš„ç›®æ ‡å­¦ä¹ ç‡
+              swa_anneal_epoch: int, ä»å¼€å§‹çš„å­¦ä¹ ç‡ç»è¿‡swa_start_epochè½®å˜æˆç›®æ ‡å­¦ä¹ ç‡swa_lr
+              swa_anneal_strategy: string, swaè½¬å˜å­¦ä¹ ç‡æ—¶çš„ç­–ç•¥
+              **kwargs: å…¶ä»–å‚æ•°
+        [OUT] best_score: float, è®­ç»ƒå¾—åˆ°çš„æœ€ä¼˜åˆ†
         """
         logging.info("train model start at rank {}".format(self.local_rank))
         train_start_time = time.time()
 
-        # ¼ÓÔØ×îÓÅÄ£ĞÍ
+        # åŠ è½½æœ€ä¼˜æ¨¡å‹
         if load_best_model:
             self.load_model(best_model_save_path, strict)
 
-        # ²ÎÊıÈÅ¶¯ÑµÁ·
+        # å‚æ•°æ‰°åŠ¨è®­ç»ƒ
         if adversarial_training:
             fgm = FGM(self.model)
 
-        # ³õÊ¼»¯ÓÅ»¯Æ÷
+        # åˆå§‹åŒ–ä¼˜åŒ–å™¨
         optimizer = self.init_optimizer(self.model, learning_rate, **kwargs)
-        # Ëæ»úÈ¨ÖØÆ½¾ù
+        # éšæœºæƒé‡å¹³å‡
         if swa:
-            # ÎªÁË¿ÉÒÔÓÃbreak¿ìËÙÌø³ö
+            # ä¸ºäº†å¯ä»¥ç”¨breakå¿«é€Ÿè·³å‡º
             for _ in range(1):
-                # ÅĞ¶ÏepochÊıÊÇ·ñ¹»°²ÅÅswa
+                # åˆ¤æ–­epochæ•°æ˜¯å¦å¤Ÿå®‰æ’swa
                 if epochs < 3:
                     logging.warning("epoch num({}) too small to stochastic weight averageing.".
                             format(epochs))
@@ -200,13 +201,13 @@ class BaseModel(object):
                     break
 
                 if swa_start_epoch is None:
-                    # swaÄ¬ÈÏ´Óºó25%µÄepoch¿ªÊ¼
+                    # swaé»˜è®¤ä»å25%çš„epochå¼€å§‹
                     swa_start_epoch = max(int(epochs * 0.75), 2)
                     logging.warning("swa_start_epoch set to {} according to epochs".
                             format(swa_start_epoch))
 
                 if swa_start_epoch > epochs:
-                    # epochs >= 2, Òò´Ëepochs//2Ò»¶¨´óÓÚ0
+                    # epochs >= 2, å› æ­¤epochs//2ä¸€å®šå¤§äº0
                     new_swa_start_epoch = max(epochs - swa_anneal_epoch, 2)
                     logging.warning("swa_start_epoch({}) > epochs({}), "\
                             "reset swa_start_epoch to {} according to swa_anneal_epoch({})".
@@ -241,7 +242,7 @@ class BaseModel(object):
                         anneal_epochs=swa_anneal_epoch,
                         swa_lr=swa_lr)
 
-        # Ñ§Ï°ÂÊµ÷Õû
+        # å­¦ä¹ ç‡è°ƒæ•´
         if scheduler_mode is not None:
             lr_schedule_epoch = swa_start_epoch if swa else epochs
             lr_scheduler = self.init_scheduler(
@@ -253,49 +254,49 @@ class BaseModel(object):
 
         cur_train_step = 0
         for cur_epoch in range(epochs):
-            # Èç¹ûÊÇdistributed ÒªÊÖ¶¯¸ødataloaderÉèÖÃepoch ÒÔÈÃÆäÃ¿¸öepochÖØĞÂ´òÂÒÊı¾İ
+            # å¦‚æœæ˜¯distributed è¦æ‰‹åŠ¨ç»™dataloaderè®¾ç½®epoch ä»¥è®©å…¶æ¯ä¸ªepoché‡æ–°æ‰“ä¹±æ•°æ®
             if self.distributed:
                 train_dataloader.sampler.set_epoch(cur_epoch)
 
-            # ½øÈëtrainÄ£Ê½
-            # Ã¿epoch¶¼Òªtrain ÒòÎªevalµÄÊ±ºò»á±äeval
+            # è¿›å…¥trainæ¨¡å¼
+            # æ¯epochéƒ½è¦train å› ä¸ºevalçš„æ—¶å€™ä¼šå˜eval
             self.model.train()
 
-            # Ö÷½ø³ÌµÄÑµÁ·Õ¹Ê¾½ø¶È
+            # ä¸»è¿›ç¨‹çš„è®­ç»ƒå±•ç¤ºè¿›åº¦
             if self.is_master:
                 pbar = tqdm(total=len(train_dataloader), desc="train progress")
 
             for cur_train_batch in train_dataloader:
                 cur_train_step += 1
-                # Çå¿ÕÖ®Ç°µÄÌİ¶È
+                # æ¸…ç©ºä¹‹å‰çš„æ¢¯åº¦
                 optimizer.zero_grad()
 
-                # »ñµÃ±¾batch_loss ²¢·´´«µÃµ½Ìİ¶È
+                # è·å¾—æœ¬batch_loss å¹¶åä¼ å¾—åˆ°æ¢¯åº¦
                 loss = self.get_loss(**cur_train_batch)
                 loss.backward()
 
-                # ¶Ô¿¹ÑµÁ·
+                # å¯¹æŠ—è®­ç»ƒ
                 if adversarial_training:
-                    # ¼ÓÈë¶Ô¿¹ÈÅ¶¯
+                    # åŠ å…¥å¯¹æŠ—æ‰°åŠ¨
                     fgm.attack(emb_name="word_embeddings.")
-                    # ÔÙ¼ÆËãloss
+                    # å†è®¡ç®—loss
                     loss_adv = self.get_loss(**cur_train_batch)
-                    # ·´´« ÀÛ¼ÓÌİ¶È
+                    # åä¼  ç´¯åŠ æ¢¯åº¦
                     loss_adv.backward()
-                    # »Ö¸´emb²ÎÊı
+                    # æ¢å¤embå‚æ•°
                     fgm.restore()
 
-                # ÓÃ»ñÈ¡µÄÌİ¶È¸üĞÂÄ£ĞÍ²ÎÊı
+                # ç”¨è·å–çš„æ¢¯åº¦æ›´æ–°æ¨¡å‹å‚æ•°
                 optimizer.step()
-                # ÓÅ»¯Æ÷¸üĞÂºóÔÙ¸üĞÂÑ§Ï°ÂÊµ÷ÕûÆ÷
-                # lr_schedulerÊÇÃ¿step¸üĞÂÒ»´Î
+                # ä¼˜åŒ–å™¨æ›´æ–°åå†æ›´æ–°å­¦ä¹ ç‡è°ƒæ•´å™¨
+                # lr_scheduleræ˜¯æ¯stepæ›´æ–°ä¸€æ¬¡
                 if (not swa or cur_epoch < swa_start_epoch) and scheduler_mode is not None:
                     lr_scheduler.step()
 
                 logging.debug("optimizer learning_rate: {}".
                         format([x['lr'] for x in optimizer.state_dict()['param_groups']]))
 
-                # Çå¿ÕÖ®Ç°µÄÌİ¶È
+                # æ¸…ç©ºä¹‹å‰çš„æ¢¯åº¦
                 optimizer.zero_grad()
 
                 loss = loss.cpu().detach().numpy()
@@ -314,65 +315,65 @@ class BaseModel(object):
                         })
                     pbar.update(1)
 
-            # ÒòÎªÕâÀï½áÊøºó¾ÍÒªÏÂÒ»epoch Òò´ËÕâÀïĞèÒªÅĞ¶ÏµÄÊÇÏÂÒ»¸öepochÊÇ²»ÊÇstart_epoch
-            # µ±lr_scheduler½áÊøºó ÏÂÒ»¸öepochÒªswa_schedulerÁË ¾ÍÓ¦¸ÃÖ±½Ó¿ªÊ¼step
-            # swa_schedulerÊÇÃ¿epoch±ä»¯Ò»´Î
+            # å› ä¸ºè¿™é‡Œç»“æŸåå°±è¦ä¸‹ä¸€epoch å› æ­¤è¿™é‡Œéœ€è¦åˆ¤æ–­çš„æ˜¯ä¸‹ä¸€ä¸ªepochæ˜¯ä¸æ˜¯start_epoch
+            # å½“lr_schedulerç»“æŸå ä¸‹ä¸€ä¸ªepochè¦swa_scheduleräº† å°±åº”è¯¥ç›´æ¥å¼€å§‹step
+            # swa_scheduleræ˜¯æ¯epochå˜åŒ–ä¸€æ¬¡
             if swa and cur_epoch + 1 >= swa_start_epoch:
                 swa_model.update_parameters(self.model)
                 swa_scheduler.step()
 
             if self.is_master:
-                # Ö÷½ø³Ì²ÅÓĞ½ø¶ÈÕ¹Ê¾ ¹Ø±Õ
+                # ä¸»è¿›ç¨‹æ‰æœ‰è¿›åº¦å±•ç¤º å…³é—­
                 pbar.close()
 
                 if model_save_path is not None:
-                    # Ã¿ÂÖ±£´æÄ£ĞÍ
+                    # æ¯è½®ä¿å­˜æ¨¡å‹
                     logging.info("save model at epoch {}".format(cur_epoch))
                     self.save_model(model_save_path + "_epoch{}".format(cur_epoch))
 
-            # ¼ÆËãÑéÖ¤¼¯×¼È·ÂÊ
+            # è®¡ç®—éªŒè¯é›†å‡†ç¡®ç‡
             cur_eval_res = self.eval(eval_dataloader, print_step=print_step, **kwargs)
             is_best = self.check_if_best(cur_eval_res)
             if self.is_master and is_best and best_model_save_path is not None:
-                # Èç¹ûÊÇµ±Ç°×îÓÅĞ§¹ûÄ£ĞÍ Ôò±£´æÎªbestÄ£ĞÍ
+                # å¦‚æœæ˜¯å½“å‰æœ€ä¼˜æ•ˆæœæ¨¡å‹ åˆ™ä¿å­˜ä¸ºbestæ¨¡å‹
                 logging.info("cur best score = {}, save model at epoch {} as best model"\
                         .format(self.get_best_score(), cur_epoch))
                 self.save_model(best_model_save_path)
 
-        # ËùÓĞÑµÁ·½áÊøºó
-        # Èç¹û¿ªÆôÁËËæ»úÈ¨ÖµÆ½¾ù Ôò×îºó´¦ÀíµÃµ½swaµÄÄ£ĞÍ½á¹û
+        # æ‰€æœ‰è®­ç»ƒç»“æŸå
+        # å¦‚æœå¼€å¯äº†éšæœºæƒå€¼å¹³å‡ åˆ™æœ€åå¤„ç†å¾—åˆ°swaçš„æ¨¡å‹ç»“æœ
         if swa:
             update_bn(train_dataloader, swa_model)
             self.model = swa_model
 
             if self.is_master and model_save_path is not None:
-                # Ã¿ÂÖ±£´æÄ£ĞÍ
+                # æ¯è½®ä¿å­˜æ¨¡å‹
                 logging.info("save model at swa")
                 self.save_model(model_save_path + "_swa")
 
-            # ¼ÆËãÑéÖ¤¼¯×¼È·ÂÊ
+            # è®¡ç®—éªŒè¯é›†å‡†ç¡®ç‡
             cur_eval_res = self.eval(eval_dataloader, print_step=print_step, **kwargs)
             is_best = self.check_if_best(cur_eval_res)
             if self.is_master and is_best and best_model_save_path is not None:
-                # Èç¹ûÊÇµ±Ç°×îÓÅĞ§¹ûÄ£ĞÍ Ôò±£´æÎªbestÄ£ĞÍ
+                # å¦‚æœæ˜¯å½“å‰æœ€ä¼˜æ•ˆæœæ¨¡å‹ åˆ™ä¿å­˜ä¸ºbestæ¨¡å‹
                 logging.info("cur best score = {}, save model at swa as best model".format(self.get_best_score()))
                 self.save_model(best_model_save_path)
         logging.info("train model cost time %.4fs" % (time.time() - train_start_time))
         return self.get_best_score()
 
     def single_batch_infer(self, infer_data_dict, is_tensor=True, **kwargs):
-        """ Ô¤²âµ¥ÅúÊı¾İ
-        [IN]  infer_data_list: list[(input1[, input2, ...])], ´ıÔ¤²âÊı¾İ
-              is_tensor: bool, trueÔòÊäÈëÊı¾İÎªtorch.Tensor, ·ñÔòÒªÏÈ×ªÎªtensor
-        [OUT] infer_res: dict[torch.Tensor], Ô¤²â½á¹û
+        """ é¢„æµ‹å•æ‰¹æ•°æ®
+        [IN]  infer_data_list: list[(input1[, input2, ...])], å¾…é¢„æµ‹æ•°æ®
+              is_tensor: bool, trueåˆ™è¾“å…¥æ•°æ®ä¸ºtorch.Tensor, å¦åˆ™è¦å…ˆè½¬ä¸ºtensor
+        [OUT] infer_res: dict[torch.Tensor], é¢„æµ‹ç»“æœ
         """
-        # inferÊ±²»±£´æ·´ÏòµÄÌİ¶È
+        # inferæ—¶ä¸ä¿å­˜åå‘çš„æ¢¯åº¦
         with torch.no_grad():
-            # ¿ØÖÆÄ£ĞÍ½øÈëevalÄ£Ê½£¬Õâ½«»á¹Ø±ÕËùÓĞµÄdropoutºÍnorm£»
+            # æ§åˆ¶æ¨¡å‹è¿›å…¥evalæ¨¡å¼ï¼Œè¿™å°†ä¼šå…³é—­æ‰€æœ‰çš„dropoutå’Œnormï¼›
             self.model.eval()
 
             for k, v in infer_data_dict.items():
-                # Èç¹ûinfer_data_listÃ»ÓĞ×ªtensor Ôò×ªÎªtorch½ÓÊÕµÄtensor
+                # å¦‚æœinfer_data_listæ²¡æœ‰è½¬tensor åˆ™è½¬ä¸ºtorchæ¥æ”¶çš„tensor
                 infer_data_dict[k] = v.to(self.device) if is_tensor else torch.tensor(v, device=self.device)
 
             #logging.info("input ids: {}".format(infer_data_dict["input_ids"]))
@@ -387,7 +388,7 @@ class BaseModel(object):
             #logging.info("infer_data_list[0] shape: {}".format(infer_data_list[0].shape))
             infer_res = self.model(**infer_data_dict, **kwargs)
 
-            # °´¸÷Êä³ö¾ÛºÏ½á¹û
+            # æŒ‰å„è¾“å‡ºèšåˆç»“æœ
             infer_res = {k: v.detach() for k, v in infer_res.items()}
 
             #if isinstance(infer_res, tuple):
@@ -398,10 +399,10 @@ class BaseModel(object):
         return infer_res
 
     def infer_iter(self, infer_dataloader, print_step=20, fetch_list=None, **kwargs):
-        """ÖğÅúÔ¤²â ÇÒÃ¿Åú¾ÛºÏÒ»´Î ·µ»Ø ·ÀÖ¹×ÜÔ¤²âÁ¿Ì«´ó
-           WARNING: É÷ÓÃ£¡£¡£¡¸ÃÖğÅúÔ¤²âºÏ²¢½á¹ûµÄÂß¼­ÓësamplerµÄ»®·ÖÂß¼­½«µ¼ÖÂ½á¹ûË³Ğò´òÂÒ£¡£¡£¡
+        """é€æ‰¹é¢„æµ‹ ä¸”æ¯æ‰¹èšåˆä¸€æ¬¡ è¿”å› é˜²æ­¢æ€»é¢„æµ‹é‡å¤ªå¤§
+           WARNING: æ…ç”¨ï¼ï¼ï¼è¯¥é€æ‰¹é¢„æµ‹åˆå¹¶ç»“æœçš„é€»è¾‘ä¸samplerçš„åˆ’åˆ†é€»è¾‘å°†å¯¼è‡´ç»“æœé¡ºåºæ‰“ä¹±ï¼ï¼ï¼
         """
-        # distributedÔ¤²âÊ±»á²¹Æë Òò´ËÕâÀïÒªÍ³¼ÆÊµ¼ÊÔ¤²âµÄÊıÄ¿ºÍÊı¾İ¼¯²¹ÆëÇ°µÄÊıÄ¿
+        # distributedé¢„æµ‹æ—¶ä¼šè¡¥é½ å› æ­¤è¿™é‡Œè¦ç»Ÿè®¡å®é™…é¢„æµ‹çš„æ•°ç›®å’Œæ•°æ®é›†è¡¥é½å‰çš„æ•°ç›®
         actual_infer_num = 0
         origin_infer_num = len(infer_dataloader.dataset)
 
@@ -427,21 +428,21 @@ class BaseModel(object):
                 for k, cur_logits_tensor in cur_infer_res.items():
                     cur_logits_gather = [torch.zeros_like(cur_logits_tensor).to(self.device) \
                             for _ in range(torch.distributed.get_world_size())]
-                    # ÓĞgatherº¯Êı µ«¶Ôgather²Ù×÷ ncclÖ»Ö§³Öall_gather,²»Ö§³Ögather
+                    # æœ‰gatherå‡½æ•° ä½†å¯¹gatheræ“ä½œ ncclåªæ”¯æŒall_gather,ä¸æ”¯æŒgather
                     torch.distributed.all_gather(cur_logits_gather, cur_logits_tensor)
 
-                    # ½á¹ûÆ´½Ó
+                    # ç»“æœæ‹¼æ¥
                     cur_logits_gather_tensor = torch.cat(cur_logits_gather, dim=0)
                     logging.debug("cur_logits_gather_tensor shape: {}".format(cur_logits_gather_tensor.shape))
 
-                    # Êµ¼Ê±¾ÅúÊı¾İµÄÊıÄ¿£¨È¥³ı²¹ÆëµÄÊı¾İ£©
+                    # å®é™…æœ¬æ‰¹æ•°æ®çš„æ•°ç›®ï¼ˆå»é™¤è¡¥é½çš„æ•°æ®ï¼‰
                     cur_actual_infer_num = min(origin_infer_num - actual_infer_num,  len(cur_logits_gather_tensor))
 
-                    # È¥³ıºóÃæ²¹ÆëµÄ
+                    # å»é™¤åé¢è¡¥é½çš„
                     cur_logits_gather_tensor = cur_logits_gather_tensor[:cur_actual_infer_num]
                     logging.debug("cur_logits_gather_tensor strip shape: {}".format(cur_logits_gather_tensor.shape))
 
-                    # ¸üĞÂµ±Ç°ÒÑÔ¤²âµÄÊıÄ¿
+                    # æ›´æ–°å½“å‰å·²é¢„æµ‹çš„æ•°ç›®
                     actual_infer_num += cur_actual_infer_num
 
                     infer_res_dict[k] = cur_logits_gather_tensor
@@ -464,36 +465,36 @@ class BaseModel(object):
 
 
     def infer(self, infer_dataloader, print_step=20, fetch_list=None, **kwargs):
-        """ ¶Ôinfer_dataloader½øĞĞÔ¤²â Ä£ĞÍ»á±äÎªeval×´Ì¬
-        [IN]  infer_dataloader: DataLoader, ´ıÔ¤²âÊı¾İ
-              print_step: int, Ã¿¸öprint_step´òÓ¡ÑµÁ·Çé¿ö
-              gather_output_inds: int or list[int], Ö¸Ê¾Òª»ñÈ¡µÄÊä³ö½á¹û£¬ÆäËûµÄºöÂÔ
-        [OUT] pred: tuple(list[float]), Ô¤²â½á¹û
+        """ å¯¹infer_dataloaderè¿›è¡Œé¢„æµ‹ æ¨¡å‹ä¼šå˜ä¸ºevalçŠ¶æ€
+        [IN]  infer_dataloader: DataLoader, å¾…é¢„æµ‹æ•°æ®
+              print_step: int, æ¯ä¸ªprint_stepæ‰“å°è®­ç»ƒæƒ…å†µ
+              gather_output_inds: int or list[int], æŒ‡ç¤ºè¦è·å–çš„è¾“å‡ºç»“æœï¼Œå…¶ä»–çš„å¿½ç•¥
+        [OUT] pred: tuple(list[float]), é¢„æµ‹ç»“æœ
         """
-        # TODO ¸÷Ä£ĞÍµÄÊäÈëÊä³ö ĞèÒªÏë¸ö¶¨ÖÆ»¯µÄ·½·¨¼æÈİ
-        # 1. ×°ÊÎÆ÷
-        # 2. get_input¡¢get_outputº¯ÊıÖØÔØ
-        # 3. ²ÎÊı¿ØÖÆ
+        # TODO å„æ¨¡å‹çš„è¾“å…¥è¾“å‡º éœ€è¦æƒ³ä¸ªå®šåˆ¶åŒ–çš„æ–¹æ³•å…¼å®¹
+        # 1. è£…é¥°å™¨
+        # 2. get_inputã€get_outputå‡½æ•°é‡è½½
+        # 3. å‚æ•°æ§åˆ¶
 
         infer_res_dict = None
 
         cur_infer_step = 0
         cur_infer_time = time.time()
-        # TODO ²ÉÓÃtqdmÕ¹Ê¾½ø¶È
+        # TODO é‡‡ç”¨tqdmå±•ç¤ºè¿›åº¦
         for cur_infer_tuple in infer_dataloader:
             cur_infer_step += 1
-            ## ÊäÈë¹Ì¶¨Îªtuple£¬Ô¤²âÊ±*´«Èë
+            ## è¾“å…¥å›ºå®šä¸ºtupleï¼Œé¢„æµ‹æ—¶*ä¼ å…¥
             #if not isinstance(cur_infer_tuple, tuple):
             #    cur_infer_tuple = (cur_infer_tuple,)
             cur_infer_res = self.single_batch_infer(cur_infer_tuple, **kwargs)
-            ## Êä³ö¹Ì¶¨´¦ÀíÎªtuple
+            ## è¾“å‡ºå›ºå®šå¤„ç†ä¸ºtuple
             #if not isinstance(cur_logits_tuple, tuple):
             #    cur_logits_tuple = (cur_logits_tuple,)
 
-            # »ñÈ¡Ä¿±êÊä³ö
-            # Òò¸ù¾İĞòÁĞµÄÔ¤²â½á¹û¸÷Åú´Îshape²»Ò»ÖÂ Ö®ºó²»ÄÜ½øĞĞcat
-            # ËùÒÔÕâÀïĞèÒªÈËÎªÖ¸¶¨Òª»ñÈ¡µÄÊä³ö ÌŞ³ı¸÷Åú´Îshape²»Ò»ÖÂµÄ½á¹û
-            # TODO ÏëÒ»ÏÂÉÏÊöÊä³ö½á¹ûshape²»Ò»ÖÂÊ±²»ÄÜcatµÄ´¦Àí·½·¨ 1. ²»Í³Ò»cat?
+            # è·å–ç›®æ ‡è¾“å‡º
+            # å› æ ¹æ®åºåˆ—çš„é¢„æµ‹ç»“æœå„æ‰¹æ¬¡shapeä¸ä¸€è‡´ ä¹‹åä¸èƒ½è¿›è¡Œcat
+            # æ‰€ä»¥è¿™é‡Œéœ€è¦äººä¸ºæŒ‡å®šè¦è·å–çš„è¾“å‡º å‰”é™¤å„æ‰¹æ¬¡shapeä¸ä¸€è‡´çš„ç»“æœ
+            # TODO æƒ³ä¸€ä¸‹ä¸Šè¿°è¾“å‡ºç»“æœshapeä¸ä¸€è‡´æ—¶ä¸èƒ½catçš„å¤„ç†æ–¹æ³• 1. ä¸ç»Ÿä¸€cat?
             if fetch_list is not None:
                 cur_infer_res = {x: cur_infer_res[x] for x in fetch_list}
                 #if isinstance(gather_output_inds, int):
@@ -501,7 +502,7 @@ class BaseModel(object):
                 #elif isinstance(gather_output_inds, list) or isinstance(gather_output_inds, tuple):
                 #    cur_logits_tuple = [cur_logits_tuple[ind] for ind in gather_output_inds]
 
-            # ÈôµÚÒ»´ÎÔ¤²â Ôò³õÊ¼»¯infer_res_dict
+            # è‹¥ç¬¬ä¸€æ¬¡é¢„æµ‹ åˆ™åˆå§‹åŒ–infer_res_dict
             if infer_res_dict is None:
                 infer_res_dict = dict()
                 for k in cur_infer_res.keys():
@@ -509,28 +510,28 @@ class BaseModel(object):
                 #for _ in range(len(cur_logits_tuple)):
                 #    infer_res_dict.append(list())
 
-            # ¸÷½á¹û·Ö±ğÌí¼Óµ½¸÷×ÔlistÖĞ
+            # å„ç»“æœåˆ†åˆ«æ·»åŠ åˆ°å„è‡ªlistä¸­
             for k, v in cur_infer_res.items():
                 infer_res_dict[k].append(v.detach())
             #for output_ind, cur_logits in enumerate(cur_logits_tuple):
             #    infer_res_list[output_ind].append(cur_logits.detach())
 
-            # ´òÓ¡Ô¤²âĞÅÏ¢
+            # æ‰“å°é¢„æµ‹ä¿¡æ¯
             if cur_infer_step % print_step == 0:
                 cost_time = time.time() - cur_infer_time
                 speed = cur_infer_step / cost_time
                 logging.info('infer step %d, total cost time = %.4fs, speed %.2f step/s' \
                         % (cur_infer_step, cost_time, speed))
 
-        # Æ´½ÓÔ¤²âµÄ¸÷Êä³ötensor
+        # æ‹¼æ¥é¢„æµ‹çš„å„è¾“å‡ºtensor
         for k, v in infer_res_dict.items():
-            # infer_res_list[index]ÁĞ±íÖĞÈôtensor shape²»Ò»ÖÂ Ôò»á³ö´í
+            # infer_res_list[index]åˆ—è¡¨ä¸­è‹¥tensor shapeä¸ä¸€è‡´ åˆ™ä¼šå‡ºé”™
             infer_res_dict[k] = torch.cat(infer_res_dict[k], dim=0)
             #infer_res_list[index] = torch.cat(infer_res_list[index], dim=0)
             logging.debug("infer_res_dict[{}] shape: {}".format(k, infer_res_dict[k].shape))
 
         if self.distributed:
-            # Èç¹û·Ö²¼Ê½Ô¤²âµÄ ĞèÒª½«½á¹ûgather
+            # å¦‚æœåˆ†å¸ƒå¼é¢„æµ‹çš„ éœ€è¦å°†ç»“æœgather
             infer_res_gather_dict = dict()
             for k, cur_res_tensor in infer_res_dict.items():
                 infer_res_gather_dict[k] = self.gather_distributed_tensor(cur_res_tensor, len(infer_dataloader.dataset))
@@ -538,56 +539,63 @@ class BaseModel(object):
 
             infer_res_dict = infer_res_gather_dict
 
-        # ÔÚÕâÀï½«Êı¾İ×ªÎªnumpy
-        # ½«¸÷½ø³ÌÊı¾İgatherºó£¬Ò»°ãÀ´Ëµ¾ÍÖ»ĞèÒªÁôÖ÷½ø³Ì×öÖ®ºóµÄ²Ù×÷ÁË£¬ÎÒÃÇĞ´´úÂëÒ²¿ÉÒÔÅĞ¶Ïµ±Ç°½ø³ÌÊÇ·ñÖ÷½ø³Ì£¬²»ÊÇÔòÖ±½ÓÍË³ö¼´¿É
-        # µ«ÆäËû½ø³Ì±ØĞëÔÚ½á¹ûÊı¾İ.detach().cpu().numpy()Ö®ºó£¬²ÅÄÜÍÆ³ö£¬·ñÔò³ÌĞò»á¿¨ËÀ
-        # ¼´ÒªÖ÷½ø³Ì½«½á¹û×ªµ½cpuÖ®ºó£¬ÆäÓà½ø³Ì²ÅÄÜ½áÊø Ê£ÏÂµÄ²Ù×÷¿ÉÓÉÖ÷½ø³ÌÖ´ĞĞ
-        # ½«¸Ã²Ù×÷ÒÆµ½inferº¯ÊıÖĞ Ò²ÊÇÅÂµ÷ÓÃ¸Ãº¯Êıºó ³ÌĞòÏÈ½áÊøÁËÆäËû½ø³Ì È»ºóÏë°Ñ½á¹ûÊı¾İ×ªµ½cpu¶øµ¼ÖÂ³ÌĞò¿¨ËÀ
+        # åœ¨è¿™é‡Œå°†æ•°æ®è½¬ä¸ºnumpy
+        # å°†å„è¿›ç¨‹æ•°æ®gatheråï¼Œä¸€èˆ¬æ¥è¯´å°±åªéœ€è¦ç•™ä¸»è¿›ç¨‹åšä¹‹åçš„æ“ä½œäº†ï¼Œæˆ‘ä»¬å†™ä»£ç ä¹Ÿå¯ä»¥åˆ¤æ–­å½“å‰è¿›ç¨‹æ˜¯å¦ä¸»è¿›ç¨‹ï¼Œä¸æ˜¯åˆ™ç›´æ¥é€€å‡ºå³å¯
+        # ä½†å…¶ä»–è¿›ç¨‹å¿…é¡»åœ¨ç»“æœæ•°æ®.detach().cpu().numpy()ä¹‹åï¼Œæ‰èƒ½æ¨å‡ºï¼Œå¦åˆ™ç¨‹åºä¼šå¡æ­»
+        # å³è¦ä¸»è¿›ç¨‹å°†ç»“æœè½¬åˆ°cpuä¹‹åï¼Œå…¶ä½™è¿›ç¨‹æ‰èƒ½ç»“æŸ å‰©ä¸‹çš„æ“ä½œå¯ç”±ä¸»è¿›ç¨‹æ‰§è¡Œ
+        # å°†è¯¥æ“ä½œç§»åˆ°inferå‡½æ•°ä¸­ ä¹Ÿæ˜¯æ€•è°ƒç”¨è¯¥å‡½æ•°å ç¨‹åºå…ˆç»“æŸäº†å…¶ä»–è¿›ç¨‹ ç„¶åæƒ³æŠŠç»“æœæ•°æ®è½¬åˆ°cpuè€Œå¯¼è‡´ç¨‹åºå¡æ­»
         infer_res_dict = {k: v.detach().cpu().numpy() for k, v in infer_res_dict.items()}
 
         return infer_res_dict
 
     def gather_distributed_tensor(self, tar_tensor, res_size):
         gather_list = [torch.zeros_like(tar_tensor).to(self.device) for _ in range(torch.distributed.get_world_size())]
-        # ÓĞgatherº¯Êı µ«¶Ôgather²Ù×÷ ncclÖ»Ö§³Öall_gather,²»Ö§³Ögather
+        # æœ‰gatherå‡½æ•° ä½†å¯¹gatheræ“ä½œ ncclåªæ”¯æŒall_gather,ä¸æ”¯æŒgather
         torch.distributed.all_gather(gather_list, tar_tensor)
-        # ½á¹ûÆ´½Ó
+        # ç»“æœæ‹¼æ¥
         gather_tensor = torch.cat(gather_list, dim=0)
         logging.info("gather_tensor shape: {}".format(gather_tensor.shape))
-        # ·Ö²¼Ê½µÄdataloader»á¸ù¾İbatch_sizeºÍ½ø³ÌÊı¶ÔÊı¾İ²¹Æë Ê¹¸÷½ø³ÌÊı¾İÄÜ¾ù·Ö
-        # µÃµ½½á¹ûÊ±ĞèÒªÈ¥³ıºóÃæ²¹ÆëµÄ
+        # åˆ†å¸ƒå¼çš„dataloaderä¼šæ ¹æ®batch_sizeå’Œè¿›ç¨‹æ•°å¯¹æ•°æ®è¡¥é½ ä½¿å„è¿›ç¨‹æ•°æ®èƒ½å‡åˆ†
+        # å¾—åˆ°ç»“æœæ—¶éœ€è¦å»é™¤åé¢è¡¥é½çš„
         gather_tensor = gather_tensor[:res_size]
         logging.info("gather_tensor strip shape: {}".format(gather_tensor.shape))
 
         return gather_tensor
 
     def init_model(self, *args, **kwargs):
-        """ÍøÂç¹¹½¨º¯Êı
+        """ç½‘ç»œæ„å»ºå‡½æ•°
         """
         raise NotImplementedError
 
     def get_loss(self, **inputs):
-        """ÑµÁ·Ê±ÈçºÎµÃµ½loss
+        """è®­ç»ƒæ—¶å¦‚ä½•å¾—åˆ°loss
         """
-        # get_lossºÍsingle_batch_infer²»Í¬
-        # ÆäĞèÒª±£´æÌİ¶ÈµÈĞÅÏ¢
+        # get_losså’Œsingle_batch_inferä¸åŒ
+        # å…¶éœ€è¦ä¿å­˜æ¢¯åº¦ç­‰ä¿¡æ¯
         for k, v in inputs.items():
-            # ½«ÊäÈëtensor·Åµ½¶ÔÓ¦device
-            # Ö»ÓĞtensor²Å·Å ÆäÓàµÄ²ÎÊı²»±ä
+            # å°†è¾“å…¥tensoræ”¾åˆ°å¯¹åº”device
+            # åªæœ‰tensoræ‰æ”¾ å…¶ä½™çš„å‚æ•°ä¸å˜
             if isinstance(v, torch.Tensor) and v.device != self.device:
                 inputs[k] = v.to(self.device)
 
-        forward_res = self.model(**inputs)
+        # DDPçŠ¶æ€ä¸‹ forwardåªèƒ½è¾“å‡ºlossç›¸å…³æ•°æ® ä¸ç„¶ä¼šå‡ºé”™
+        # Expected to have finished reduction in the prior iteration before starting a new one...
+        # https://github.com/pytorch/pytorch/issues/22436
+        # https://discuss.pytorch.org/t/process-got-stuck-when-set-find-unused-parameters-true-in-ddp/106078/3
+        # https://blog.csdn.net/jolinxia/article/details/113407588
+        forward_res = self.model(**inputs, only_loss=True)
+
+        assert len(forward_res) == 1, "forward_res items: {}".format(forward_res.keys())
 
         return forward_res["loss"]
 
     def eval(self, eval_dataloader, print_step=50, gather_loss=False, **kwargs):
-        """Ä£ĞÍÆÀ¹À
+        """æ¨¡å‹è¯„ä¼°
         """
         raise NotImplementedError
 
     def check_if_best(self, cur_eval_res):
-        """¸ù¾İÆÀ¹À½á¹û ÅĞ¶ÏÊÇ·ñ×îÓÅ
+        """æ ¹æ®è¯„ä¼°ç»“æœ åˆ¤æ–­æ˜¯å¦æœ€ä¼˜
         """
         raise NotImplementedError
 
@@ -599,7 +607,7 @@ class BaseModel(object):
 
 class ClassificationModel(BaseModel):
     def __init__(self, best_acc=None, label_encoder=None, *args, **kwargs):
-        """³õÊ¼»¯
+        """åˆå§‹åŒ–
         """
         super(ClassificationModel, self).__init__(*args, **kwargs)
         self.best_acc = best_acc
@@ -630,7 +638,7 @@ class ClassificationModel(BaseModel):
                        cur_label = self.label_encoder.decode(cur_pred)
                    if confidence is not None and confidence > cur_confidence:
                        cur_confidence = "{}({:.4f})".format(cur_label, cur_confidence)
-                       cur_label = "ÆäËû"
+                       cur_label = "å…¶ä»–"
                    else:
                        cur_confidence = "{:.4f}".format(cur_confidence)
                    wf.write("{}\t{}\n".format(cur_label, cur_confidence))
@@ -639,16 +647,16 @@ class ClassificationModel(BaseModel):
 
     def eval(self, eval_dataloader, print_step=50, **kwargs):
         """
-        [IN]  eval_dataloader: DataLoader, ÆÀ¹ÀÊı¾İ¼¯
-              print_step: int, Ã¿¸ôprint_stepÕ¹Ê¾µ±Ç°ÆÀ¹ÀĞÅÏ¢
-        [OUT] acc: float, ·ÖÀà×¼È·ÂÊ
+        [IN]  eval_dataloader: DataLoader, è¯„ä¼°æ•°æ®é›†
+              print_step: int, æ¯éš”print_stepå±•ç¤ºå½“å‰è¯„ä¼°ä¿¡æ¯
+        [OUT] acc: float, åˆ†ç±»å‡†ç¡®ç‡
         """
         all_pred = list()
         all_label = list()
         self.model.eval()
         cur_eval_step = 0
         start_time = time.time()
-        # ÑéÖ¤Ê±²»±£´æ·´ÏòµÄÌİ¶È
+        # éªŒè¯æ—¶ä¸ä¿å­˜åå‘çš„æ¢¯åº¦
         with torch.no_grad():
             for cur_eval_batch in eval_dataloader:
                 cur_eval_step += 1
@@ -666,9 +674,9 @@ class ClassificationModel(BaseModel):
                     logging.info('eval step %d, total cost time = %.4fs, speed %.2f step/s' \
                             % (cur_eval_step, cost_time, speed))
 
-        # predÊÇÄ£ĞÍÔ¤²âµÄ½á¹û Ä£ĞÍÊÇÔÚself.deviceÉÏµÄ
+        # predæ˜¯æ¨¡å‹é¢„æµ‹çš„ç»“æœ æ¨¡å‹æ˜¯åœ¨self.deviceä¸Šçš„
         all_pred = torch.cat(all_pred, dim=0)
-        # labelÊÇÖ±½Ó´ÓdataloaderÄÃµÄÊı¾İ »¹Ã»ÓĞ·ÅÔÚself.deviceÉÏ
+        # labelæ˜¯ç›´æ¥ä»dataloaderæ‹¿çš„æ•°æ® è¿˜æ²¡æœ‰æ”¾åœ¨self.deviceä¸Š
         all_label = torch.cat(all_label, dim=0).to(self.device)
 
         logging.debug("all pred shape: {}".format(all_pred.shape))
@@ -695,9 +703,9 @@ class ClassificationModel(BaseModel):
         return acc
 
     def check_if_best(self, cur_eval_res):
-        """¸ù¾İÆÀ¹À½á¹ûÅĞ¶ÏÊÇ·ñ×îÓÅ
-        [IN]  cur_eval_res: float, µ±Ç°ÆÀ¹ÀµÃ·Ö
-        [OUT] trueÔòÎªµ±Ç°×îÓÅµÃ·Ö£¬·ñÔò²»ÊÇ
+        """æ ¹æ®è¯„ä¼°ç»“æœåˆ¤æ–­æ˜¯å¦æœ€ä¼˜
+        [IN]  cur_eval_res: float, å½“å‰è¯„ä¼°å¾—åˆ†
+        [OUT] trueåˆ™ä¸ºå½“å‰æœ€ä¼˜å¾—åˆ†ï¼Œå¦åˆ™ä¸æ˜¯
         """
         if self.best_acc is None or self.best_acc <= cur_eval_res:
             self.best_acc = cur_eval_res
@@ -706,14 +714,14 @@ class ClassificationModel(BaseModel):
             return False
 
     def get_best_score(self):
-        """·µ»Øµ±Ç°×îÓÅµÃ·Ö
+        """è¿”å›å½“å‰æœ€ä¼˜å¾—åˆ†
         """
         return self.best_acc
 
 
 class SimModel(BaseModel):
     def __init__(self, min_loss=None, *args, **kwargs):
-        """³õÊ¼»¯
+        """åˆå§‹åŒ–
         """
         super(SimModel, self).__init__(*args, **kwargs)
         self.min_loss = min_loss
@@ -736,25 +744,25 @@ class SimModel(BaseModel):
 
     def eval(self, eval_dataloader, print_step=50, gather_loss=True, confidence=0.5, **kwargs):
         """
-        [IN]  eval_dataloader: DataLoader, ÆÀ¹ÀÊı¾İ¼¯
-              print_step: int, Ã¿¸ôprint_stepÕ¹Ê¾µ±Ç°ÆÀ¹ÀĞÅÏ¢
-        [OUT] acc: float, ·ÖÀà×¼È·ÂÊ
+        [IN]  eval_dataloader: DataLoader, è¯„ä¼°æ•°æ®é›†
+              print_step: int, æ¯éš”print_stepå±•ç¤ºå½“å‰è¯„ä¼°ä¿¡æ¯
+        [OUT] acc: float, åˆ†ç±»å‡†ç¡®ç‡
         """
         self.model.eval()
         cur_eval_step = 0
         start_time = time.time()
         res_dict = defaultdict(list)
 
-        # Ö÷½ø³ÌµÄÑµÁ·Õ¹Ê¾½ø¶È
+        # ä¸»è¿›ç¨‹çš„è®­ç»ƒå±•ç¤ºè¿›åº¦
         if self.is_master:
             pbar = tqdm(total=len(eval_dataloader), desc="eval progress")
 
-        # ÑéÖ¤Ê±²»±£´æ·´ÏòµÄÌİ¶È
+        # éªŒè¯æ—¶ä¸ä¿å­˜åå‘çš„æ¢¯åº¦
         with torch.no_grad():
             for cur_eval_batch in eval_dataloader:
                 cur_eval_step += 1
-                # TODO Èç¹ûÊÇpointwise Ôò¿ÉÒÔËãacc ·ñÔòÊÇpairwise Ëãloss
-                # ¿´cur_eval_batchÖĞÓĞthird_input_ids»¹ÊÇlabels ÓĞlabelsÔòÊÇpointwise ÓĞthird_input_idsÔòÊÇpairwise
+                # TODO å¦‚æœæ˜¯pointwise åˆ™å¯ä»¥ç®—acc å¦åˆ™æ˜¯pairwise ç®—loss
+                # çœ‹cur_eval_batchä¸­æœ‰third_input_idsè¿˜æ˜¯labels æœ‰labelsåˆ™æ˜¯pointwise æœ‰third_input_idsåˆ™æ˜¯pairwise
                 if InstanceName.THIRD_INPUT_IDS in cur_eval_batch:
                     self.eval_type = "pairwise"
                 elif InstanceName.LABEL_IDS in cur_eval_batch:
@@ -769,7 +777,7 @@ class SimModel(BaseModel):
                 cur_infer_res = self.single_batch_infer(cur_eval_batch)
 
                 if self.eval_type == "pairwise":
-                    # ±£´ælossÊ± ÏÈ½«Æädetach ²»È»±£´æµÄ²»Ö»ÊÇloss »¹ÓĞÕû¸ö¼ÆËãÍ¼
+                    # ä¿å­˜lossæ—¶ å…ˆå°†å…¶detach ä¸ç„¶ä¿å­˜çš„ä¸åªæ˜¯loss è¿˜æœ‰æ•´ä¸ªè®¡ç®—å›¾
                     res_dict["each_loss"].append(cur_infer_res["each_loss"].detach().view(-1, 1))
                 elif self.eval_type == "pointwise":
                     cur_pred = cur_infer_res["second_sim"].detach()
@@ -791,20 +799,20 @@ class SimModel(BaseModel):
                     pbar.update(1)
 
         if self.is_master:
-            # Ö÷½ø³Ì²ÅÓĞ½ø¶ÈÕ¹Ê¾ ¹Ø±Õ
+            # ä¸»è¿›ç¨‹æ‰æœ‰è¿›åº¦å±•ç¤º å…³é—­
             pbar.close()
 
         for cur_res_name, cur_res_list in res_dict.items():
             cur_res = torch.cat(cur_res_list, dim=0)
             if self.distributed:
                 if cur_res_name == "loss":
-                    # lossÊÇÃ¿ÅúÑµÁ·Êı¾İµÃµ½Ò»¸öÆ½¾ùµÄloss
-                    # Òò´ËÆäÊıÄ¿Ó¦¸ÃÊÇ¸÷¿¨µÄÑµÁ·ÅúÊı*¿¨Êı
-                    # µ«Òò¶à¿¨Ê± »áÎªÁË¸ø¸÷¿¨ÕûÊıÅú¶ø²¹ÆëÊı¾İ
-                    # Òò´Ë»ã×ÜlossµÃµ½Æ½¾ùµÄloss»áºÍµ¥¿¨Ê±µÃµ½µÄÆ½¾ùloss²»Ò»ÖÂ
-                    # ÕâÊÇ²¹ÆëÊı¾İµ¼ÖÂµÄ
-                    # Èç¹ûÒªÒ»ÖÂ ÔòĞèÒªÄ£ĞÍÊä³ö¸÷ÑµÁ·Êı¾İµÄloss ¼´each_loss
-                    # ÕâÑù°´ÑµÁ·Êı¾İ´óĞ¡½Ø¶ÏÊ±¼È¿ÉÒÔÈ¥³ı²¹ÆëÊı¾İµÄloss
+                    # lossæ˜¯æ¯æ‰¹è®­ç»ƒæ•°æ®å¾—åˆ°ä¸€ä¸ªå¹³å‡çš„loss
+                    # å› æ­¤å…¶æ•°ç›®åº”è¯¥æ˜¯å„å¡çš„è®­ç»ƒæ‰¹æ•°*å¡æ•°
+                    # ä½†å› å¤šå¡æ—¶ ä¼šä¸ºäº†ç»™å„å¡æ•´æ•°æ‰¹è€Œè¡¥é½æ•°æ®
+                    # å› æ­¤æ±‡æ€»losså¾—åˆ°å¹³å‡çš„lossä¼šå’Œå•å¡æ—¶å¾—åˆ°çš„å¹³å‡lossä¸ä¸€è‡´
+                    # è¿™æ˜¯è¡¥é½æ•°æ®å¯¼è‡´çš„
+                    # å¦‚æœè¦ä¸€è‡´ åˆ™éœ€è¦æ¨¡å‹è¾“å‡ºå„è®­ç»ƒæ•°æ®çš„loss å³each_loss
+                    # è¿™æ ·æŒ‰è®­ç»ƒæ•°æ®å¤§å°æˆªæ–­æ—¶æ—¢å¯ä»¥å»é™¤è¡¥é½æ•°æ®çš„loss
                     res_size = len(eval_dataloader) * torch.distributed.get_world_size()
                 else:
                     res_size = len(eval_dataloader.dataset)
@@ -827,9 +835,9 @@ class SimModel(BaseModel):
                 return acc
 
     def check_if_best(self, cur_eval_res):
-        """¸ù¾İÆÀ¹À½á¹ûÅĞ¶ÏÊÇ·ñ×îÓÅ
-        [IN]  cur_eval_res: float, µ±Ç°ÆÀ¹ÀµÃ·Ö
-        [OUT] trueÔòÎªµ±Ç°×îÓÅµÃ·Ö£¬·ñÔò²»ÊÇ
+        """æ ¹æ®è¯„ä¼°ç»“æœåˆ¤æ–­æ˜¯å¦æœ€ä¼˜
+        [IN]  cur_eval_res: float, å½“å‰è¯„ä¼°å¾—åˆ†
+        [OUT] trueåˆ™ä¸ºå½“å‰æœ€ä¼˜å¾—åˆ†ï¼Œå¦åˆ™ä¸æ˜¯
         """
         if self.eval_type == "pairwise":
             if self.min_loss is None or self.min_loss >= cur_eval_res:
@@ -845,7 +853,7 @@ class SimModel(BaseModel):
                 return False
 
     def get_best_score(self):
-        """·µ»Øµ±Ç°×îÓÅµÃ·Ö
+        """è¿”å›å½“å‰æœ€ä¼˜å¾—åˆ†
         """
         return self.min_loss
 
@@ -853,89 +861,115 @@ class SimModel(BaseModel):
 class Seq2seqModel(BaseModel):
     def __init__(self, *args, **kwargs):
         self.tokenizer = kwargs["tokenizer"]
+        logging.info("tokenizer: {}".format(self.tokenizer))
         super(Seq2seqModel, self).__init__(*args, **kwargs)
 
-    def generate(self, text, out_max_length=40, max_length=512, **kwargs):
-        """¸ù¾İÊäÈëÎÄ±¾Éú³ÉÎÄ±¾
-        [IN]  text: str, ÎÄ±¾ĞòÁĞ
-              out_max_length: int, Êä³öÎÄ±¾µÄ×î³¤³¤¶È
-              max_length: int, ÊäÈëºÍÊä³öÎÄ±¾×ÜµÄ×î³¤³¤¶È
-              **kwargs: beam_searchËùĞè²ÎÊı
-        [OUT] generate_text_list: list[str], Éú³ÉÎÄ±¾µÄÁĞ±í
+    def generate_by_text(self, text, max_gen_length=40, max_length=512, **kwargs):
+        """æ ¹æ®è¾“å…¥æ–‡æœ¬ç”Ÿæˆæ–‡æœ¬
+        [IN]  text: str, æ–‡æœ¬åºåˆ—
+              out_max_length: int, è¾“å‡ºæ–‡æœ¬çš„æœ€é•¿é•¿åº¦
+              max_length: int, è¾“å…¥å’Œè¾“å‡ºæ–‡æœ¬æ€»çš„æœ€é•¿é•¿åº¦
+              **kwargs: beam_searchæ‰€éœ€å‚æ•°
+        [OUT] generate_text_list: list[str], ç”Ÿæˆæ–‡æœ¬çš„åˆ—è¡¨
         """
-        # ¶Ô Ò»¸ö ¾ä×ÓÉú³ÉÏàÓ¦µÄ½á¹û
-        ## Í¨¹ıÊä³ö×î´ó³¤¶ÈµÃµ½ÊäÈëµÄ×î´ó³¤¶È£¬ÕâÀïÎÊÌâ²»´ó£¬Èç¹û³¬¹ı×î´ó³¤¶È»á½øĞĞ½Ø¶Ï
-        # TODO Ó¦¸Ã×÷Îª²ÎÊı ´«Èëbeam_search
-        self.out_max_length = out_max_length
-        input_max_length = max_length - out_max_length
+        # å¯¹ ä¸€ä¸ª å¥å­ç”Ÿæˆç›¸åº”çš„ç»“æœ
+        ## é€šè¿‡è¾“å‡ºæœ€å¤§é•¿åº¦å¾—åˆ°è¾“å…¥çš„æœ€å¤§é•¿åº¦ï¼Œè¿™é‡Œé—®é¢˜ä¸å¤§ï¼Œå¦‚æœè¶…è¿‡æœ€å¤§é•¿åº¦ä¼šè¿›è¡Œæˆªæ–­
+        input_max_length = max_length - max_gen_length
 
-        # ¹¹ÔìÊäÈëÊı¾İ
-        # token_type_id È«Îª0
+        # æ„é€ è¾“å…¥æ•°æ®
+        # token_type_id å…¨ä¸º0
         token_ids, token_type_ids = self.tokenizer.encode(text, max_length=input_max_length)
         token_ids = torch.tensor(token_ids, device=self.device).view(1, -1)
         token_type_ids = torch.tensor(token_type_ids, device=self.device).view(1, -1)
 
-        # Éú³ÉÎÄ±¾
-        generate_list = self.beam_search(
-                token_ids,
-                token_type_ids,
-                self.tokenizer._token_sep_id,
+        return self.generate(
+            infer_dataloader=[{"input_ids":token_ids,"token_type_ids":token_type_ids}],
+            max_gen_length=max_gen_length,
+            **kwargs,
+            )
+    
+    def generate(self, infer_dataloader, max_gen_length=30, **kwargs):
+        """ å¯¹infer_dataloaderè¿›è¡Œé¢„æµ‹ æ¨¡å‹ä¼šå˜ä¸ºevalçŠ¶æ€
+        [IN]  infer_dataloader: DataLoader, å¾…é¢„æµ‹æ•°æ®
+              max_length: int, è¾“å…¥å’Œè¾“å‡ºæ–‡æœ¬æ€»çš„æœ€é•¿é•¿åº¦
+              **kwargs: beam_searchæ‰€éœ€å‚æ•°
+        [OUT] gen_text_list: list, ç”Ÿæˆç»“æœåˆ—è¡¨
+        """
+
+        generate_res_path = kwargs.pop("generate_res_path", None)
+        logging.info("generate res path: {}".format(generate_res_path))
+
+        gen_text_list = list()
+
+        for cur_infer_dict in tqdm(infer_dataloader):
+            generate_list = self.beam_search(
+                token_ids=cur_infer_dict["input_ids"],
+                token_type_ids=cur_infer_dict["token_type_ids"],
+                stop_id=self.tokenizer._token_sep_id,
+                max_gen_length=max_gen_length,
                 **kwargs,
                 )
+            
+            cur_input = self.tokenizer.decode(cur_infer_dict["input_ids"].detach().cpu().numpy()[0])
+            logging.info("input: {}".format(cur_input))
 
-        # ¶ÔÉú³ÉµÄÎÄ±¾½âÂë
-        generate_text_list = list()
-        for cur_output_ids, cur_score in generate_list:
-            cur_text = self.tokenizer.decode(cur_output_ids.detach().cpu().numpy())
-            generate_text_list.append((cur_text, cur_score.tolist()))
+            # å¯¹ç”Ÿæˆçš„æ–‡æœ¬è§£ç 
+            cur_gen_text_list = list()
+            for cur_output_ids, cur_score in generate_list:
+                #logging.info("cur output ids: {}".format(cur_output_ids))
+                cur_text = self.tokenizer.decode(cur_output_ids.detach().cpu().numpy())
+                logging.info("gen_text: {}, score: {}".format(cur_text, cur_score))
+                cur_gen_text_list.append((cur_text, cur_score.tolist()))
+            
+            gen_text_list.append(cur_gen_text_list)
 
-        return generate_text_list
+        return gen_text_list
 
     def top_k_top_p_filtering(self, logits, top_k=0, top_p=1.0, filter_value=None, min_tokens_to_keep=1):
-        """beam_searchÊ±°´top_k_top_p²ßÂÔËæ»ú³éÑùÊä³ötoken
-        [IN]  logits: tensor, shape=[beam_size, vocab_size], µ±Ç°¸÷beamÏÂ¸÷tokenµÄÊä³ö¸ÅÂÊ
-              top_k: int, ±£Áô¸ÅÂÊÇ°top_kµÄtokenµÄ¸ÅÂÊ£¬ÆäÓàµÄ¸ÅÂÊÖÃÁã
-              top_p: int, ¸ÅÂÊÓÉ´óµ½Ğ¡ÒÀ´ÎÀÛ¼Óµ½¸Õ³¬¹ıtop_pÊ±Ëù¸²¸ÇµÄtoken±£Áô¸ÅÂÊ£¬ÆäÓàµÄ¸ÅÂÊÖÃÁã
-              filter_value: float, ¸ÅÂÊÖÃÁãµÄtokenÊµ¼ÊÔÚsoftmaxÇ°Òª¸Ä³ÉµÄÖµ£¬Ä¬ÈÏ-float('Inf')
+        """beam_searchæ—¶æŒ‰top_k_top_pç­–ç•¥éšæœºæŠ½æ ·è¾“å‡ºtoken
+        [IN]  logits: tensor, shape=[beam_size, vocab_size], å½“å‰å„beamä¸‹å„tokençš„è¾“å‡ºæ¦‚ç‡
+              top_k: int, ä¿ç•™æ¦‚ç‡å‰top_kçš„tokençš„æ¦‚ç‡ï¼Œå…¶ä½™çš„æ¦‚ç‡ç½®é›¶
+              top_p: int, æ¦‚ç‡ç”±å¤§åˆ°å°ä¾æ¬¡ç´¯åŠ åˆ°åˆšè¶…è¿‡top_pæ—¶æ‰€è¦†ç›–çš„tokenä¿ç•™æ¦‚ç‡ï¼Œå…¶ä½™çš„æ¦‚ç‡ç½®é›¶
+              filter_value: float, æ¦‚ç‡ç½®é›¶çš„tokenå®é™…åœ¨softmaxå‰è¦æ”¹æˆçš„å€¼ï¼Œé»˜è®¤-float('Inf')
         """
-        # TODO Ö±½Ó·Å²ÎÊıÄ¬ÈÏÖµ
+        # TODO ç›´æ¥æ”¾å‚æ•°é»˜è®¤å€¼
         if filter_value is None:
             filter_value = -float('Inf')
 
         if top_k > 0:
-            # Êµ¼ÊµÄtopkÒªĞ¡ÓÚÊµ¼ÊºòÑ¡ÊıÄ¿
-            # Í¬Ê±±£Ö¤ÖÁÉÙmin_tokens_to_keepµÄ³éÈ¡¸ÅÂÊ²»Îª0
+            # å®é™…çš„topkè¦å°äºå®é™…å€™é€‰æ•°ç›®
+            # åŒæ—¶ä¿è¯è‡³å°‘min_tokens_to_keepçš„æŠ½å–æ¦‚ç‡ä¸ä¸º0
             top_k = min(max(top_k, min_tokens_to_keep), logits.size(-1))
-            # ĞèÒªÖÃÁãµÄtokenÎ»ÖÃÎªtrue
+            # éœ€è¦ç½®é›¶çš„tokenä½ç½®ä¸ºtrue
             indices_to_remove = logits < torch.topk(logits, top_k)[0][..., -1, None]
             logging.debug("indices_to_remove: {}".format(indices_to_remove))
-            # ÎªtrueµÄÎ»ÖÃÖµÉèÎªfilter_value
+            # ä¸ºtrueçš„ä½ç½®å€¼è®¾ä¸ºfilter_value
             logits[indices_to_remove] = filter_value
 
         if top_p < 1.0:
-            # ÓÉ´óµ½Ğ¡ÅÅĞò ·½±ãÖ®ºóÀÛ¼Ó ±£ÁôÅÅĞòºó¸÷Î»ÖÃµÄÔ­Ê¼ind
+            # ç”±å¤§åˆ°å°æ’åº æ–¹ä¾¿ä¹‹åç´¯åŠ  ä¿ç•™æ’åºåå„ä½ç½®çš„åŸå§‹ind
             sorted_logits, sorted_indices = torch.sort(logits, descending=True)
             logging.debug("sorted_logits: {}".format(sorted_logits))
             logging.debug("sorted_indices: {}".format(sorted_indices))
 
-            # ÀÛ¼Ó
+            # ç´¯åŠ 
             cumulative_probs = torch.cumsum(torch.nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
             #cumulative_probs = torch.cumsum(sorted_logits, dim=-1)
             logging.debug("cumulative_probs: {}".format(cumulative_probs))
 
-            # ĞèÒªÖÃÁãµÄÎ»ÖÃÎªtrue Õâ¸öÎ»ÖÃÊÇÅÅĞòºóµÄÎ»ÖÃ
+            # éœ€è¦ç½®é›¶çš„ä½ç½®ä¸ºtrue è¿™ä¸ªä½ç½®æ˜¯æ’åºåçš„ä½ç½®
             sorted_indices_to_remove = cumulative_probs > top_p
             logging.debug("sorted_indices_to_remove: {}".format(sorted_indices_to_remove))
             if min_tokens_to_keep > 1:
-                # ±£Ö¤ÖÁÉÙmin_tokens_to_keepµÄ³éÈ¡¸ÅÂÊ²»Îª0
+                # ä¿è¯è‡³å°‘min_tokens_to_keepçš„æŠ½å–æ¦‚ç‡ä¸ä¸º0
                 sorted_indices_to_remove[..., :min_tokens_to_keep] = 0
             logging.debug("sorted_indices_to_remove: {}".format(sorted_indices_to_remove))
-            # ÓÒÒÆÒ»Î» ÒòÎªÊ¹p¸ÕºÃ´óÓÚtop_pµÄÄÇÒ»¸öÒ²Ó¦¸Ã±£Áô
+            # å³ç§»ä¸€ä½ å› ä¸ºä½¿påˆšå¥½å¤§äºtop_pçš„é‚£ä¸€ä¸ªä¹Ÿåº”è¯¥ä¿ç•™
             sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
             sorted_indices_to_remove[..., 0] = 0
             logging.debug("sorted_indices_to_remove: {}".format(sorted_indices_to_remove))
 
-            # ÖÃÁãµÄÎ»ÖÃ °´sorted_indices×ª»»µ½ÅÅĞòÇ°µÄ¸÷Î»ÖÃ
+            # ç½®é›¶çš„ä½ç½® æŒ‰sorted_indicesè½¬æ¢åˆ°æ’åºå‰çš„å„ä½ç½®
             indices_to_remove = sorted_indices_to_remove.scatter(-1, sorted_indices, sorted_indices_to_remove)
             logging.debug("indices_to_remove: {}".format(indices_to_remove))
             logits[indices_to_remove] = filter_value
@@ -946,12 +980,12 @@ class Seq2seqModel(BaseModel):
         return logits
 
     def add_penalty(self, score, penalty):
-        """Îªscore¼Ó³Í·£
-        [IN]  score: float, µ±Ç°µÃ·Ö
-              penalty: float, Òª¼ÓµÄ³Í·£ ¸ù¾İÖµµÄ´óĞ¡ ÓĞ²»Í¬µÄ³Í·£Âß¼­
-        [OUT] score: float, ³Í·£ºóµÄÖµ
+        """ä¸ºscoreåŠ æƒ©ç½š
+        [IN]  score: float, å½“å‰å¾—åˆ†
+              penalty: float, è¦åŠ çš„æƒ©ç½š æ ¹æ®å€¼çš„å¤§å° æœ‰ä¸åŒçš„æƒ©ç½šé€»è¾‘
+        [OUT] score: float, æƒ©ç½šåçš„å€¼
         """
-        # penaltyÎª0 ±íÊ¾²»±ä
+        # penaltyä¸º0 è¡¨ç¤ºä¸å˜
         if penalty != 0:
             if penalty < 1:
                 if score < 0:
@@ -962,97 +996,100 @@ class Seq2seqModel(BaseModel):
                 score -= penalty
         return score
 
-    # stop_idÓ¦¸ÃÔÚtokenizerÀï
-    def beam_search(self, token_ids, token_type_ids, stop_id=None,
-            beam_size=1, beam_group=1, repeat_penalty=5, diverse_step=5, diverse_penalty=5,
-            random_step=1, top_k=0, top_p=1.0, filter_value=None, min_tokens_to_keep=1):
-        """beam search²Ù×÷
-        [IN]  token_ids: tensor, ÊäÈëµÄword id
-              token_type_ids: tensor, ÊäÈëµÄsegment id
-              stop_id: int, ×÷ÎªÍ£Ö¹·ûµÄtoken_id£¬Ä¬ÈÏÊÇ[SEP]µÄid
-              beam_size: int, Ö¸µÄÊÇ¸÷beam_groupÄÚµÄbeam_search·ÖÖ§´óĞ¡
-              beam_group: int, beam_group¸öÊı
-              repeat_penalty: float, ¸÷beam_search·ÖÖ§¶ÔÊä³öÖØ¸´×Ö·ûµÄ³Í·£
-              diverse_step: int, diverseÖÜÆÚ£¬Ã¿diverse_step¸öÊ±¼ä²½¶Ô¸÷group½øĞĞdiverse³Í·£
-              diverse_penalty: float, Í¬Ê±¼ä²½ÄÚ£¬¸÷groupÊä³öÆäÇ°ĞògroupÒÑÊä³ö×Ö·ûÒ»ÖÂµÄ³Í·£
-              random_step: int, Ëæ»ú³éÑùÖÜÆÚ£¬Ã¿random_step¸öÊ±¼ä²½½øĞĞËæ»ú³éÑù
-              top_k: int, Ëæ»ú³éÑùÊ±£¬±£ÁôÊä³ö¸ÅÂÊÇ°top_kµÄtoken¸ÅÂÊ
-              top_p: int, Ëæ»ú³éÑùÊ±£¬±£ÁôÊä³ö¸ÅÂÊÓÉ´óµ½Ğ¡ÀÛ»ıºÍ¸Õ³¬¹ıtop_pÊ±¸²¸ÇµÄtoken¸ÅÂÊ
-              filter_value: int, ²»±£ÁôµÄtokenµÄ¸ÅÂÊ¸ÄÎªfilter_value£¬softmaxºóÕâĞ©tokenµÄ¸ÅÂÊ½«±äÎªÁã
-              min_tokens_to_keep: int, Ëæ»ú³éÑùÊ±£¬ÖÁÉÙ±£Áômin_tokens_to_keep¸ötokenµÄÊä³ö¸ÅÂÊ
-        [OUT] generate_list: list[(str, int)], Éú³ÉÎÄ±¾¼°ÆäµÃ·ÖµÄÁĞ±í
+    # stop_idåº”è¯¥åœ¨tokenizeré‡Œ
+    def beam_search(self, token_ids, token_type_ids, stop_id=None, max_gen_length=30,
+            beam_size=4, beam_group=5, repeat_penalty=2, diverse_step=5, diverse_penalty=0.7,
+            random_step=1, top_k=200, top_p=0.7, filter_value=None, min_tokens_to_keep=1):
+        """beam searchæ“ä½œ
+        [IN]  token_ids: tensor, è¾“å…¥çš„word id
+              token_type_ids: tensor, è¾“å…¥çš„segment id
+              stop_id: int, ä½œä¸ºåœæ­¢ç¬¦çš„token_idï¼Œé»˜è®¤æ˜¯[SEP]çš„id
+              beam_size: int, æŒ‡çš„æ˜¯å„beam_groupå†…çš„beam_searchåˆ†æ”¯å¤§å°
+              beam_group: int, beam_groupä¸ªæ•°
+              repeat_penalty: float, å„beam_searchåˆ†æ”¯å¯¹è¾“å‡ºé‡å¤å­—ç¬¦çš„æƒ©ç½š
+              diverse_step: int, diverseå‘¨æœŸï¼Œæ¯diverse_stepä¸ªæ—¶é—´æ­¥å¯¹å„groupè¿›è¡Œdiverseæƒ©ç½š
+              diverse_penalty: float, åŒæ—¶é—´æ­¥å†…ï¼Œå„groupè¾“å‡ºå…¶å‰åºgroupå·²è¾“å‡ºå­—ç¬¦ä¸€è‡´çš„æƒ©ç½š
+              random_step: int, éšæœºæŠ½æ ·å‘¨æœŸï¼Œæ¯random_stepä¸ªæ—¶é—´æ­¥è¿›è¡ŒéšæœºæŠ½æ ·
+              top_k: int, éšæœºæŠ½æ ·æ—¶ï¼Œä¿ç•™è¾“å‡ºæ¦‚ç‡å‰top_kçš„tokenæ¦‚ç‡
+              top_p: int, éšæœºæŠ½æ ·æ—¶ï¼Œä¿ç•™è¾“å‡ºæ¦‚ç‡ç”±å¤§åˆ°å°ç´¯ç§¯å’Œåˆšè¶…è¿‡top_pæ—¶è¦†ç›–çš„tokenæ¦‚ç‡
+              filter_value: int, ä¸ä¿ç•™çš„tokençš„æ¦‚ç‡æ”¹ä¸ºfilter_valueï¼Œsoftmaxåè¿™äº›tokençš„æ¦‚ç‡å°†å˜ä¸ºé›¶
+              min_tokens_to_keep: int, éšæœºæŠ½æ ·æ—¶ï¼Œè‡³å°‘ä¿ç•™min_tokens_to_keepä¸ªtokençš„è¾“å‡ºæ¦‚ç‡
+        [OUT] generate_list: list[(str, int)], ç”Ÿæˆæ–‡æœ¬åŠå…¶å¾—åˆ†çš„åˆ—è¡¨
         """
         if stop_id is None:
             stop_id = self.tokenizer._token_sep_id
 
-        # Ò»´ÎÖ»ÊäÈëÒ»¸ö
+        token_type_ids = token_type_ids.to(self.device)
+        token_ids = token_ids.to(self.device)
+
+        # ä¸€æ¬¡åªè¾“å…¥ä¸€ä¸ª
+        assert token_ids.shape[0] == 1, \
+            "expect token_ids.shape = [1, xxx], one text at a time, actual: {}".format(token_type_ids.shape)
         # batch_size = 1
         # token_ids shape: [batch_size, seq_length]
-        logging.debug("token_ids: {}".format(token_ids))
-        logging.debug("token_ids shape: {}".format(token_ids.shape))
+        #logging.info("token_ids: {}".format(token_ids))
+        #logging.info("token_ids shape: {}".format(token_ids.shape))
         # token_type_ids shape: [batch_size, seq_length]
-        logging.debug("token_type_ids : {}".format(token_type_ids))
-        logging.debug("token_type_ids  shape: {}".format(token_type_ids.shape))
+        #logging.info("token_type_ids : {}".format(token_type_ids))
+        #logging.info("token_type_ids  shape: {}".format(token_type_ids.shape))
 
-        # µ±Ç°Îª³õÊ¼×ÜÌåbeam_size Ã¿´ÎÑ­»·Ê± »áËæÏÖ´æbeam_group¶ø¸Ä±ä
+        # å½“å‰ä¸ºåˆå§‹æ€»ä½“beam_size æ¯æ¬¡å¾ªç¯æ—¶ ä¼šéšç°å­˜beam_groupè€Œæ”¹å˜
         total_beam_size = beam_size * beam_group
-        logging.debug("total_beam size: {}".format(total_beam_size))
+        #logging.info("total_beam size: {}".format(total_beam_size))
         repeat_word = [list() for i in range(total_beam_size)]
 
-        # ÓÃÀ´±£´æÊä³öĞòÁĞ
+        # ç”¨æ¥ä¿å­˜è¾“å‡ºåºåˆ—
         output_ids = torch.empty(1, 0, device=self.device, dtype=torch.long)
-        logging.debug("output_ids: {}".format(output_ids))
-        logging.debug("output_ids shape: {}".format(output_ids.shape))
+        #logging.info("output_ids: {}".format(output_ids))
+        #logging.info("output_ids shape: {}".format(output_ids.shape))
 
         self.model.eval()
-        # ¼ÇÂ¼Éú³ÉµÄĞòÁĞ¼°ÆäµÃ·Ö
+        # è®°å½•ç”Ÿæˆçš„åºåˆ—åŠå…¶å¾—åˆ†
         generate_list = list()
         with torch.no_grad():
-            # ³õÊ¼»¯¸÷µÃ·Ö
+            # åˆå§‹åŒ–å„å¾—åˆ†
             # output_scores shape: [batch_size]
             output_scores = torch.zeros(token_ids.shape[0], device=self.device)
-            # ÖØ¸´Éú³É Ö±µ½´ïµ½×î´ó³¤¶È
-            for step in range(self.out_max_length):
-                logging.debug("step: {}".format(step))
+            # é‡å¤ç”Ÿæˆ ç›´åˆ°è¾¾åˆ°æœ€å¤§é•¿åº¦
+            for step in range(max_gen_length):
+                #logging.info("step: {}".format(step))
                 #total_beam_size = beam_size * beam_group
-                logging.debug("beam size: {}".format(total_beam_size))
+                #logging.info("beam size: {}".format(total_beam_size))
                 if step == 0:
                     # score shape: [batch_size, seq_length, vocab_size]
-                    # TODO ²»Ó¦¸Ã¸ødevice²ÎÊı
-                    infer_res = self.model(token_ids, token_type_ids, device=self.device)
+                    infer_res = self.model(token_ids, token_type_ids)
                     scores = infer_res["token_output"]
-                    logging.debug("scores shape: {}".format(scores.shape))
-                    # µÚÒ»²½Ö»À©³äµ½×é ÒòÎªºóÃæÒªÕÒ¸÷×étopk Èç¹û×éÀïÔÙrepeat ¾Í»áÖØ¸´Ñ¡ÔñÒ»¸ö
+                    #logging.info("scores shape: {}".format(scores.shape))
+                    # ç¬¬ä¸€æ­¥åªæ‰©å……åˆ°ç»„ å› ä¸ºåé¢è¦æ‰¾å„ç»„topk å¦‚æœç»„é‡Œå†repeat å°±ä¼šé‡å¤é€‰æ‹©ä¸€ä¸ª
                     scores = scores.repeat(beam_group, 1, 1)
-                    logging.debug("scores shape: {}".format(scores.shape))
+                    #logging.info("scores shape: {}".format(scores.shape))
 
-                    # µÚÒ»´ÎÔ¤²âÍêºó²ÅÄÜ¸Ä±ä
-                    # ÖØ¸´beam-size´Î ÊäÈëids
+                    # ç¬¬ä¸€æ¬¡é¢„æµ‹å®Œåæ‰èƒ½æ”¹å˜
+                    # é‡å¤beam-sizeæ¬¡ è¾“å…¥ids
                     # token_ids shape: [total_beam_size, batch_size*seq_length]
                     token_ids = token_ids.view(1, -1).repeat(total_beam_size, 1)
-                    logging.debug("token_ids shape: {}".format(token_ids.shape))
+                    #logging.info("token_ids shape: {}".format(token_ids.shape))
 
                     # token_type_ids shape: [total_beam_size, batch_size*seq_length]
                     token_type_ids = token_type_ids.view(1, -1).repeat(total_beam_size, 1)
-                    logging.debug("token_type_ids shape: {}".format(token_type_ids.shape))
+                    #logging.info("token_type_ids shape: {}".format(token_type_ids.shape))
                 else:
                     # score shape: [total_beam_size, cur_seq_length, vocab_size]
-                    # cur_seq_lengthÊÇÖğ½¥±ä»¯µÄ
-                    logging.debug("new_input_ids shape: {}".format(new_input_ids.shape))
-                    logging.debug("new_token_type_ids shape: {}".format(new_token_type_ids.shape))
-                    # TODO ²»Ó¦¸Ã¸ødevice²ÎÊı
-                    infer_res = self.model(new_input_ids, new_token_type_ids, device=self.device)
+                    # cur_seq_lengthæ˜¯é€æ¸å˜åŒ–çš„
+                    #logging.info("new_input_ids shape: {}".format(new_input_ids.shape))
+                    #logging.info("new_token_type_ids shape: {}".format(new_token_type_ids.shape))
+                    infer_res = self.model(new_input_ids, new_token_type_ids)
                     scores = infer_res["token_output"]
-                    logging.debug("scores shape: {}".format(scores.shape))
+                    #logging.info("scores shape: {}".format(scores.shape))
 
                 vocab_size = scores.shape[-1]
 
-                # Ö»È¡×îºóÒ»¸öÊä³öÔÚvocabÉÏµÄscore
+                # åªå–æœ€åä¸€ä¸ªè¾“å‡ºåœ¨vocabä¸Šçš„score
                 # logit_score shape: step0=[beam_group, vocab_size] other=[total_beam_size, vocab_size]
                 logit_score = torch.log_softmax(scores[:, -1], dim=-1)
-                logging.debug("logit_score shape: {}".format(logit_score.shape))
+                #logging.info("logit_score shape: {}".format(logit_score.shape))
 
-                # ¶ÔÃ¿Ò»¸öÒÑ³öÏÖ¹ıµÃtoken½µµÍscore
+                # å¯¹æ¯ä¸€ä¸ªå·²å‡ºç°è¿‡å¾—tokené™ä½score
                 if repeat_penalty != 0:
                     for i in range(total_beam_size):
                         for token_id in repeat_word[i]:
@@ -1060,27 +1097,27 @@ class Seq2seqModel(BaseModel):
                                     self.add_penalty(logit_score[i, token_id], repeat_penalty)
 
                 # logit_score shape: step0=[beam_group, vocab_size] other=[total_beam_size, vocab_size]
-                logit_score = output_scores.view(-1, 1) + logit_score # ÀÛ¼ÆµÃ·Ö
-                logging.debug("logit_score shape: {}".format(logit_score.shape))
+                logit_score = output_scores.view(-1, 1) + logit_score # ç´¯è®¡å¾—åˆ†
+                #logging.info("logit_score shape: {}".format(logit_score.shape))
 
-                # È¡topkµÄÊ±ºòÎÒÃÇÊÇ×éÄÚÕ¹Æ½È»ºóÔÙÈ¥µ÷ÓÃtopkº¯Êı
-                # Í¬×éµÄ¸÷beam½á¹û´òÆ½
+                # å–topkçš„æ—¶å€™æˆ‘ä»¬æ˜¯ç»„å†…å±•å¹³ç„¶åå†å»è°ƒç”¨topkå‡½æ•°
+                # åŒç»„çš„å„beamç»“æœæ‰“å¹³
                 # logit_score shape: step0=[beam_group, vocab_size] other=[beam_group, beam_size*vocab_size]
                 logit_score = logit_score.view(beam_group, -1)
-                logging.debug("logit_score shape: {}".format(logit_score.shape))
+                #logging.info("logit_score shape: {}".format(logit_score.shape))
 
                 chosen_beam_inds = list()
                 chosen_token_inds = list()
                 chosen_scores = list()
-                # ¸÷groupÒª°´ÏÈºóË³Ğò½øĞĞbeam_search
-                # ÒòÎª¸÷group»áÓ°ÏìÆäºóĞø¸÷group
+                # å„groupè¦æŒ‰å…ˆåé¡ºåºè¿›è¡Œbeam_search
+                # å› ä¸ºå„groupä¼šå½±å“å…¶åç»­å„group
                 previous_output_token = set()
                 for group_ind, cur_group_score in enumerate(logit_score):
-                    logging.debug("group_ind: {}".format(group_ind))
+                    #logging.info("group_ind: {}".format(group_ind))
                     # cur_group_score shape: step0=[vocab_size] other=[beam_size*vocab_size]
-                    logging.debug("cur_group_score shape: {}".format(cur_group_score.shape))
+                    #logging.info("cur_group_score shape: {}".format(cur_group_score.shape))
 
-                    # ¸ù¾İÇ°ĞògroupÊä³öµÄtokenÌí¼Ó³Í·£
+                    # æ ¹æ®å‰åºgroupè¾“å‡ºçš„tokenæ·»åŠ æƒ©ç½š
                     if diverse_penalty > 0 and step % diverse_step == diverse_step - 1:
                         # cur_beam_size step0=1, other=beam_size
                         cur_beam_size = cur_group_score.shape[0] // vocab_size
@@ -1089,143 +1126,144 @@ class Seq2seqModel(BaseModel):
                                 cur_group_score[cur_token_id + cur_beam_ind * vocab_size] = self.add_penalty(
                                         cur_group_score[cur_token_id + cur_beam_ind * vocab_size], diverse_penalty)
 
-                    # Çóµ±Ç°group¸÷beamÊä³ö
+                    # æ±‚å½“å‰groupå„beamè¾“å‡º
                     if random_step > 0 and step % random_step == 0:
                         cur_group_score = self.top_k_top_p_filtering(
                                 cur_group_score, top_k, top_p, filter_value, min_tokens_to_keep)
 
                         cur_group_score = torch.nn.functional.softmax(cur_group_score, dim=-1)
-                        logging.debug("cur_group_score: {}".format(cur_group_score))
+                        #logging.info("cur_group_score: {}".format(cur_group_score))
 
                         cur_chosen_pos = torch.multinomial(cur_group_score, num_samples=beam_size)
 
-                        # Òòcur_group_scoreÊÇÒ»Î¬Êı×é ËùÒÔ¿ÉÒÔÖ±½ÓÓÃcur_chosen_pos
+                        # å› cur_group_scoreæ˜¯ä¸€ç»´æ•°ç»„ æ‰€ä»¥å¯ä»¥ç›´æ¥ç”¨cur_chosen_pos
                         #temp = logits[torch.arange(0, next_tokens.shape[0]).view(-1, 1), cur_chosen_pos]
                         cur_chosen_score = cur_group_score[cur_chosen_pos]
                     else:
                         cur_chosen_score, cur_chosen_pos = torch.topk(cur_group_score, beam_size)
 
-                    logging.debug("cur_chosen_pos: {}".format(cur_chosen_pos))
-                    logging.debug("cur_chosen_score: {}".format(cur_chosen_score))
-                    logging.debug("cur_chosen_score shape: {}".format(cur_chosen_score.shape))
-                    logging.debug("cur_chosen_pos shape: {}".format(cur_chosen_pos.shape))
+                    #logging.info("cur_chosen_pos: {}".format(cur_chosen_pos))
+                    #logging.info("cur_chosen_score: {}".format(cur_chosen_score))
+                    #logging.info("cur_chosen_score shape: {}".format(cur_chosen_score.shape))
+                    #logging.info("cur_chosen_pos shape: {}".format(cur_chosen_pos.shape))
 
-                    # ¼ÇÂ¼µ±Ç°groupÑ¡ÖĞµÄscore
+                    # è®°å½•å½“å‰groupé€‰ä¸­çš„score
                     chosen_scores.append(cur_chosen_score.view(1, -1))
 
-                    # ¼ÇÂ¼µ±Ç°groupÑ¡ÖĞµÄbeam_ind£¨Ïà¶ÔÓÚÕûÌåµÄbeam_ind£©
+                    # è®°å½•å½“å‰groupé€‰ä¸­çš„beam_indï¼ˆç›¸å¯¹äºæ•´ä½“çš„beam_indï¼‰
                     cur_chosen_beam_inds = (cur_chosen_pos // vocab_size) + group_ind * beam_size
-                    logging.debug("cur_chosen_beam_inds: {}".format(cur_chosen_beam_inds))
+                    #logging.info("cur_chosen_beam_inds: {}".format(cur_chosen_beam_inds))
                     chosen_beam_inds.append(cur_chosen_beam_inds)
 
                     cur_chosen_token_inds = cur_chosen_pos % vocab_size
-                    logging.debug("cur_chosen_token_inds: {}".format(cur_chosen_token_inds))
+                    #logging.info("cur_chosen_token_inds: {}".format(cur_chosen_token_inds))
                     chosen_token_inds.append(cur_chosen_token_inds)
 
-                    # ¸üĞÂµ±Ç°groupÊä³öµÄtoken
+                    # æ›´æ–°å½“å‰groupè¾“å‡ºçš„token
                     if diverse_penalty > 0 and step % diverse_step == diverse_step - 1:
                         for token_id in cur_chosen_token_inds:
                             previous_output_token.add(token_id.item())
-                    logging.debug("previous_output_token: {}".format(previous_output_token))
+                    #logging.info("previous_output_token: {}".format(previous_output_token))
 
                 # chosen_beam_inds shape: [total_beam_size]
                 chosen_beam_inds = torch.cat(chosen_beam_inds, dim=0)
-                logging.debug("chosen_beam_inds: {}".format(chosen_beam_inds))
+                #logging.info("chosen_beam_inds: {}".format(chosen_beam_inds))
 
-                # Õâ¸ö×îºóÒª¼Óµ½output_idsÀï ËùÒÔÒª±ä³ÉÁĞÏòÁ¿
+                # è¿™ä¸ªæœ€åè¦åŠ åˆ°output_idsé‡Œ æ‰€ä»¥è¦å˜æˆåˆ—å‘é‡
                 # chosen_token_inds shape: [total_beam_size, 1]
                 chosen_token_inds = torch.cat(chosen_token_inds, dim=0).view(-1, 1)
-                logging.debug("chosen_token_inds: {}".format(chosen_token_inds))
+                #logging.info("chosen_token_inds: {}".format(chosen_token_inds))
 
-                # °´×é·Ö ÕâÀïÊÇ¸÷×éµÄtop beamsize¸ö·ÖÊı Ö®ºóÒª¿´¸÷×éµÄ×î¸ß·Ö
+                # æŒ‰ç»„åˆ† è¿™é‡Œæ˜¯å„ç»„çš„top beamsizeä¸ªåˆ†æ•° ä¹‹åè¦çœ‹å„ç»„çš„æœ€é«˜åˆ†
                 # chosen_scores shape: [beam_group, beam_size]
                 chosen_scores = torch.cat(chosen_scores, dim=0)
-                logging.debug("chosen_scores: {}".format(chosen_scores))
+                #logging.info("chosen_scores: {}".format(chosen_scores))
 
                 if repeat_penalty != 0:
-                    # ĞèÒªÓĞĞÂµÄrepeat_wordÀ´¸üĞÂ ²»È»Èç¹ûbeamÖĞÓĞÀ´×ÔÍ¬Ò»ÖÖÇé¿öµÄ
-                    # µÚ¶ş´ÎÓöµ½Ê± »á°ÑµÚÒ»´ÎµÄÒ²¼ÓÔÚµÚ¶ş´ÎÀï
+                    # éœ€è¦æœ‰æ–°çš„repeat_wordæ¥æ›´æ–° ä¸ç„¶å¦‚æœbeamä¸­æœ‰æ¥è‡ªåŒä¸€ç§æƒ…å†µçš„
+                    # ç¬¬äºŒæ¬¡é‡åˆ°æ—¶ ä¼šæŠŠç¬¬ä¸€æ¬¡çš„ä¹ŸåŠ åœ¨ç¬¬äºŒæ¬¡é‡Œ
                     new_repeat_word = [list() for i in range(total_beam_size)]
-                    logging.debug("repeat_word: {}".format(repeat_word))
+                    #logging.info("repeat_word: {}".format(repeat_word))
                     for index, (beam_ind, word_ind) in enumerate(zip(chosen_beam_inds, chosen_token_inds)):
-                        logging.debug("beam_ind: {}".format(beam_ind))
-                        logging.debug("word_ind: {}".format(word_ind))
+                        #logging.info("beam_ind: {}".format(beam_ind))
+                        #logging.info("word_ind: {}".format(word_ind))
                         new_repeat_word[index] = repeat_word[beam_ind].copy()
                         new_repeat_word[index].append(word_ind.item())
                     repeat_word = new_repeat_word
-                    logging.debug("repeat_word: {}".format(repeat_word))
+                    #logging.info("repeat_word: {}".format(repeat_word))
 
-                # ¸üĞÂµÃ·Ö
+                # æ›´æ–°å¾—åˆ†
                 # output_scores shape: [total_beam_size]
                 output_scores = chosen_scores.view(-1)
-                logging.debug("output_scores: {}".format(output_scores))
+                #logging.info("output_scores: {}".format(output_scores))
 
-                # ¸üĞÂoutput_ids
-                # Í¨¹ıchosen_beam_indsÑ¡ÊÇÄÄ¸öbeam
-                # Í¨¹ıchosen_token_indsÑ¡µ±Ç°beam¼ÓÄÄ¸ötoken_id
+                # æ›´æ–°output_ids
+                # é€šè¿‡chosen_beam_indsé€‰æ˜¯å“ªä¸ªbeam
+                # é€šè¿‡chosen_token_indsé€‰å½“å‰beamåŠ å“ªä¸ªtoken_id
                 # output_ids shape: [total_beam_size, cur_seq_length]
                 output_ids = torch.cat([output_ids[chosen_beam_inds], chosen_token_inds], dim=1).long()
-                logging.debug("output_ids: {}".format(output_ids))
+                #logging.info("output_ids: {}".format(output_ids))
 
                 # new_input_ids shape: [total_beam_size, cur_seq_length]
-                # token_idsÊÇ¹Ì¶¨Ô­ÊäÈë
-                # output_idsÊÇµ±Ç°beam_searchÁôÏÂµÄtotal_beam_size¸öºòÑ¡Â·¾¶
+                # token_idsæ˜¯å›ºå®šåŸè¾“å…¥
+                # output_idsæ˜¯å½“å‰beam_searchç•™ä¸‹çš„total_beam_sizeä¸ªå€™é€‰è·¯å¾„
                 new_input_ids = torch.cat([token_ids, output_ids], dim=1)
-                logging.debug("new_input_ids shape: {}".format(new_input_ids.shape))
+                #logging.info("new_input_ids shape: {}".format(new_input_ids.shape))
 
                 # new_token_type_ids shape: [total_beam_size, cur_seq_length]
-                # token_type_idsºó¼ÓµÄtypeÈ«Îª1
+                # token_type_idsååŠ çš„typeå…¨ä¸º1
                 new_token_type_ids = torch.cat([token_type_ids, torch.ones_like(output_ids)], dim=1)
-                logging.debug("new_token_type_ids shape: {}".format(new_token_type_ids.shape))
+                #logging.info("new_token_type_ids shape: {}".format(new_token_type_ids.shape))
 
-                # ¼ÇÂ¼µ±Ç°output_idsÖĞÓĞsep_idµÄÇé¿ö
-                end_counts = (output_ids == stop_id).sum(dim=1)  # Í³¼Æ³öÏÖµÄend±ê¼Ç
-                logging.debug("end_counts: {}".format(end_counts))
-                logging.debug("end_counts shape: {}".format(end_counts.shape))
+                # è®°å½•å½“å‰output_idsä¸­æœ‰sep_idçš„æƒ…å†µ
+                end_counts = (output_ids == stop_id).sum(dim=1)  # ç»Ÿè®¡å‡ºç°çš„endæ ‡è®°
+                #logging.info("end_counts: {}".format(end_counts))
+                #logging.info("end_counts shape: {}".format(end_counts.shape))
                 assert (end_counts < 2).all(), "wrong end_counts: {}".format(end_counts)
 
                 best_beam_inds = chosen_scores.argmax(dim=1)
-                logging.debug("best_beam_inds: {}".format(best_beam_inds))
+                #logging.info("best_beam_inds: {}".format(best_beam_inds))
                 best_beam_inds += torch.tensor(range(beam_group), device=self.device).view(-1) * beam_size
-                logging.debug("best_beam_inds: {}".format(best_beam_inds))
+                #logging.info("best_beam_inds: {}".format(best_beam_inds))
 
-                # ¼ÇÂ¼¸÷beamÊÇ·ñĞèÒª¼ÌĞø
+                # è®°å½•å„beamæ˜¯å¦éœ€è¦ç»§ç»­
                 continue_flag = [True for _ in range(total_beam_size)]
 
-                # ´¦ÀíÒÑ½áÊøµÄĞòÁĞ
+                # å¤„ç†å·²ç»“æŸçš„åºåˆ—
                 for group_ind in range(beam_group):
                     for beam_ind in range(beam_size):
                         cur_ind = group_ind * beam_size + beam_ind
-                        # Ö»ÓĞ½áÊøµÄbeamĞèÒª´¦Àí
+                        # åªæœ‰ç»“æŸçš„beaméœ€è¦å¤„ç†
                         if end_counts[cur_ind] > 0:
-                            # Èç¹ûµ±Ç°½áÊøµÄbeamÍ¬Ê±Ò²ÊÇ×éÄÚscore×î¸ßµÄ Ôò¸Ã×é½áÊø
+                            # å¦‚æœå½“å‰ç»“æŸçš„beamåŒæ—¶ä¹Ÿæ˜¯ç»„å†…scoreæœ€é«˜çš„ åˆ™è¯¥ç»„ç»“æŸ
                             cur_best_ind = best_beam_inds[group_ind]
                             if cur_ind == cur_best_ind:
-                                logging.debug("cur_best: {}".format(cur_best_ind))
-                                # ¼ÓÈë½á¹ûlist
+                                #logging.info("cur_best: {}".format(cur_best_ind))
+                                # åŠ å…¥ç»“æœlist
+                                #logging.info("confirm output: {}".format(output_ids[cur_best_ind]))
                                 generate_list.append((
                                     output_ids[cur_best_ind],
                                     output_scores[cur_best_ind].detach().cpu().numpy(),
                                     ))
-                                # beam_groupÕâÀïĞŞ¸Ä ²»»áÓ°Ïìrange(beam_group)
-                                # beam_groupÊı¼õÒ»
+                                # beam_groupè¿™é‡Œä¿®æ”¹ ä¸ä¼šå½±å“range(beam_group)
+                                # beam_groupæ•°å‡ä¸€
                                 beam_group -= 1
-                                # µ±Ç°×éÍ£Ö¹
+                                # å½“å‰ç»„åœæ­¢
                                 for i in range(beam_size * group_ind, beam_size * (group_ind + 1)):
                                     continue_flag[i] = False
                             else:
-                                # ·ñÔò¸ÃbeamÒÑ½áÊø µ«²»ÊÇ×éÄÚ×î¸ß·Ö ½«¸Ã×é×î¸ß·Öcopyµ½µ±Ç°½áÊøµÄbeamÖĞ
-                                # Òò¸÷beamµÄtoken_ids¡¢token_type_ids¶¼Ò»Ñù ËùÒÔÕâÀï²»ĞèÒªcopy
+                                # å¦åˆ™è¯¥beamå·²ç»“æŸ ä½†ä¸æ˜¯ç»„å†…æœ€é«˜åˆ† å°†è¯¥ç»„æœ€é«˜åˆ†copyåˆ°å½“å‰ç»“æŸçš„beamä¸­
+                                # å› å„beamçš„token_idsã€token_type_idséƒ½ä¸€æ · æ‰€ä»¥è¿™é‡Œä¸éœ€è¦copy
                                 new_input_ids[cur_ind] = new_input_ids[cur_best_ind].clone()
                                 new_token_type_ids[cur_ind] = new_token_type_ids[cur_best_ind].clone()
                                 output_ids[cur_ind] = output_ids[cur_best_ind].clone()
                                 output_scores[cur_ind] = output_scores[cur_best_ind].clone()
-                                # repeat_wordµÄÔªËØÊÇlist ÓÃcopy
+                                # repeat_wordçš„å…ƒç´ æ˜¯list ç”¨copy
                                 repeat_word[cur_ind] = repeat_word[cur_best_ind].copy()
 
-                logging.debug("continue_flag: {}".format(continue_flag))
+                #logging.info("continue_flag: {}".format(continue_flag))
 
-                # È¥³ıÒÑÍê³ÉµÄĞòÁĞ
+                # å»é™¤å·²å®Œæˆçš„åºåˆ—
                 token_ids = token_ids[continue_flag]
                 token_type_ids = token_type_ids[continue_flag]
                 new_input_ids = new_input_ids[continue_flag]
@@ -1238,22 +1276,22 @@ class Seq2seqModel(BaseModel):
                         new_repeat_word.append(repeat_word[index])
                 repeat_word = new_repeat_word
 
-                # ÏÂÒ»ÂÖµÄÕûÌåtotal_beam_size¸üĞÂ
+                # ä¸‹ä¸€è½®çš„æ•´ä½“total_beam_sizeæ›´æ–°
                 total_beam_size = beam_size * beam_group
-                logging.debug("total beam size: {}".format(total_beam_size))
+                #logging.info("total beam size: {}".format(total_beam_size))
 
-                # ½áÊøÌõ¼ş µ±total_beam_sizeÎª0 ¼´beam_groupÎª0Ê± ½áÊø
+                # ç»“æŸæ¡ä»¶ å½“total_beam_sizeä¸º0 å³beam_groupä¸º0æ—¶ ç»“æŸ
                 if total_beam_size == 0:
                     break
 
-            # generate_list°´·ÖÅÅĞò
+            # generate_listæŒ‰åˆ†æ’åº
             generate_list = sorted(generate_list, key=lambda x:x[1], reverse=True)
             return generate_list
 
 
 class BertSeq2seqModel(Seq2seqModel):
     def __init__(self, *args, **kwargs):
-        """³õÊ¼»¯
+        """åˆå§‹åŒ–
         """
         super(BertSeq2seqModel, self).__init__(*args, **kwargs)
         self.min_loss = None
@@ -1269,22 +1307,22 @@ class BertSeq2seqModel(Seq2seqModel):
     #    return loss
 
     def train(self, *args, **kwargs):
-        # TODO Seq2seqModelÓ¦¸ÃÃ»ÓĞlabel_encoder
+        # TODO Seq2seqModelåº”è¯¥æ²¡æœ‰label_encoder
         self.label_encoder = kwargs.pop("label_encoder", None)
         return super(BertSeq2seqModel, self).train(*args, **kwargs)
 
-    # ¿ÉÄÜ¿ÉÒÔ·Åµ½Seq2seqModelÀï
+    # å¯èƒ½å¯ä»¥æ”¾åˆ°Seq2seqModelé‡Œ
     def eval(self, eval_dataloader, print_step=50, gather_loss=True, **kwargs):
         self.model.eval()
         cur_eval_step = 0
         start_time = time.time()
         loss_list = list()
-        # ÑéÖ¤Ê±²»±£´æ·´ÏòµÄÌİ¶È
+        # éªŒè¯æ—¶ä¸ä¿å­˜åå‘çš„æ¢¯åº¦
         with torch.no_grad():
             for batch in eval_dataloader:
                 cur_eval_step += 1
                 loss = self.get_loss(**batch)
-                # ±£´ælossÊ± ÏÈ½«Æädetach ²»È»±£´æµÄ²»Ö»ÊÇloss »¹ÓĞÕû¸ö¼ÆËãÍ¼
+                # ä¿å­˜lossæ—¶ å…ˆå°†å…¶detach ä¸ç„¶ä¿å­˜çš„ä¸åªæ˜¯loss è¿˜æœ‰æ•´ä¸ªè®¡ç®—å›¾
                 loss_list.append(loss.detach().item())
                 if cur_eval_step % print_step == 0:
                     cost_time = time.time() - start_time
@@ -1293,19 +1331,19 @@ class BertSeq2seqModel(Seq2seqModel):
                             % (cur_eval_step, cost_time, speed))
         loss_mean = np.mean(loss_list)
         if self.distributed:
-            # µ±·Ö²¼Ê½ÑµÁ·Ê± Èç¹ûÒª¿¼ÂÇÈ«²¿µÄloss
-            # ÔòÈçÏÂ²Ù×÷
+            # å½“åˆ†å¸ƒå¼è®­ç»ƒæ—¶ å¦‚æœè¦è€ƒè™‘å…¨éƒ¨çš„loss
+            # åˆ™å¦‚ä¸‹æ“ä½œ
             if gather_loss:
                 loss_tensor = torch.tensor(loss_mean).to(self.device)
-                # ÕâÀïÖ»´òÓ¡master½ø³ÌµÄloss ËùÒÔÖ»ĞèÒªreduceµ½rankÎª0µÄ½ø³Ì
-                # Èç¹ûÒªËùÓĞ½ø³Ìloss_tensorÍ¬²½ ÓÃall_reduce
+                # è¿™é‡Œåªæ‰“å°masterè¿›ç¨‹çš„loss æ‰€ä»¥åªéœ€è¦reduceåˆ°rankä¸º0çš„è¿›ç¨‹
+                # å¦‚æœè¦æ‰€æœ‰è¿›ç¨‹loss_tensoråŒæ­¥ ç”¨all_reduce
                 torch.distributed.reduce(loss_tensor, 0, op=torch.distributed.ReduceOp.SUM)
                 if self.is_master:
                     logging.debug("rank {} gather loss total= {}.".format(self.local_rank, loss_tensor))
                     loss_mean = loss_tensor / torch.distributed.get_world_size()
                     logging.info("rank {} gather loss = {}.".format(self.local_rank, loss_mean))
             elif self.is_master:
-                # ·ñÔòÖ»ÓĞmaster½ø³Ì´òÓ¡loss
+                # å¦åˆ™åªæœ‰masterè¿›ç¨‹æ‰“å°loss
                 logging.info("rank {} local loss = {}.".format(self.local_rank, loss_mean))
         else:
             logging.info("eval loss = {}.".format(loss_mean))
@@ -1313,9 +1351,9 @@ class BertSeq2seqModel(Seq2seqModel):
         return loss_mean
 
     def check_if_best(self, cur_eval_res):
-        """¸ù¾İÆÀ¹À½á¹ûÅĞ¶ÏÊÇ·ñ×îÓÅ
-        [IN]  cur_eval_res: float, µ±Ç°ÆÀ¹ÀµÃ·Ö
-        [OUT] trueÔòÎªµ±Ç°×îÓÅµÃ·Ö£¬·ñÔò²»ÊÇ
+        """æ ¹æ®è¯„ä¼°ç»“æœåˆ¤æ–­æ˜¯å¦æœ€ä¼˜
+        [IN]  cur_eval_res: float, å½“å‰è¯„ä¼°å¾—åˆ†
+        [OUT] trueåˆ™ä¸ºå½“å‰æœ€ä¼˜å¾—åˆ†ï¼Œå¦åˆ™ä¸æ˜¯
         """
         if self.min_loss is None or self.min_loss >= cur_eval_res:
             self.min_loss = cur_eval_res
@@ -1324,6 +1362,6 @@ class BertSeq2seqModel(Seq2seqModel):
             return False
 
     def get_best_score(self):
-        """·µ»Øµ±Ç°×îÓÅµÃ·Ö
+        """è¿”å›å½“å‰æœ€ä¼˜å¾—åˆ†
         """
         return self.min_loss

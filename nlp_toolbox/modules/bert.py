@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding:gb18030 -*-
+# -*- coding: utf-8 -*-
+import os
+
 import json
 import logging
 import math
-import os
-
+import numpy as np
 import torch
+
 from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
+
 from nlp_toolbox.modules.losses.label_smoothing_cross_entropy_loss import LabelSmoothingCrossEntropyLoss
+
 
 def swish(x):
     return x * torch.sigmoid(x)
@@ -55,7 +59,7 @@ class BertConfig(object):
         self.initializer_range = initializer_range
         self.layer_norm_eps = layer_norm_eps
 
-        # ¾äÏòÁ¿ÅäÖÃ
+        # å¥å‘é‡é…ç½®
         self.pool_out_size = hidden_size if pool_out_size is None else pool_out_size
 
         self.other_config = kwargs
@@ -65,7 +69,7 @@ class BertConfig(object):
 
 
 class BertLayerNorm(nn.Module):
-    """LayerNorm²ã, ¼ûTransformer(Ò»), ½²±àÂëÆ÷(encoder)µÄµÚ3²¿·Ö"""
+    """LayerNormå±‚, è§Transformer(ä¸€), è®²ç¼–ç å™¨(encoder)çš„ç¬¬3éƒ¨åˆ†"""
     def __init__(self, hidden_size, eps=1e-12, conditional=False):
         """Construct a layernorm module in the TF style (epsilon inside the square root).
         """
@@ -75,7 +79,7 @@ class BertLayerNorm(nn.Module):
         self.variance_epsilon = eps
         self.conditional = conditional
         if conditional == True:
-            #ËµÃ÷ÊÇÌõ¼ş ln
+            #è¯´æ˜æ˜¯æ¡ä»¶ ln
             self.weight_dense = nn.Linear(2 * hidden_size, hidden_size, bias=False)
             self.weight_dense.weight.data.uniform_(0, 0)
             self.bias_dense = nn.Linear(2 * hidden_size, hidden_size, bias=False)
@@ -127,7 +131,7 @@ class BertEmbeddings(nn.Module):
 
         seq_length = input_shape[1]
         device = input_ids.device
-        # Èç¹ûÃ»ÓĞ´«position_ids ÔòÄ¬ÈÏÎªĞòÁĞ[0,seq_length)
+        # å¦‚æœæ²¡æœ‰ä¼ position_ids åˆ™é»˜è®¤ä¸ºåºåˆ—[0,seq_length)
         if position_ids is None:
             # cur shape: [seq_length]
             position_ids = torch.arange(seq_length, dtype=torch.long, device=device)
@@ -137,7 +141,7 @@ class BertEmbeddings(nn.Module):
         # position_ids shape: [batch_size, seq_length]
         logging.debug("position_ids shape: {}".format(position_ids.shape))
 
-        # Èç¹ûÃ»ÓĞ´«Èëtoken_type_ids Ä¬ÈÏÎªÍ¬Ò»¾ä»° Òò´ËidÈ«Îª0
+        # å¦‚æœæ²¡æœ‰ä¼ å…¥token_type_ids é»˜è®¤ä¸ºåŒä¸€å¥è¯ å› æ­¤idå…¨ä¸º0
         if token_type_ids is None:
             token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=device)
 
@@ -153,7 +157,7 @@ class BertEmbeddings(nn.Module):
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
         logging.debug("token_type_embeddings shape: {}".format(token_type_embeddings.shape))
 
-        # È«¼ÓÆğÀ´
+        # å…¨åŠ èµ·æ¥
         embeddings = inputs_embeds + position_embeddings + token_type_embeddings
         logging.debug("embeddings shape: {}".format(embeddings.shape))
 
@@ -176,13 +180,13 @@ class BertSelfAttention(nn.Module):
                 "heads (%d)" % (config.hidden_size, config.num_attention_heads)
             )
 
-        # ¶àÍ·×¢ÒâÁ¦µÄÍ·Êı
+        # å¤šå¤´æ³¨æ„åŠ›çš„å¤´æ•°
         self.num_attention_heads = config.num_attention_heads
         logging.debug("num_attention_heads: {}".format(self.num_attention_heads))
-        # Ã¿Í·µÄ×¢ÒâÁ¦Î¬Êı È¡Õû
+        # æ¯å¤´çš„æ³¨æ„åŠ›ç»´æ•° å–æ•´
         self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
         logging.debug("attention_head_size: {}".format(self.attention_head_size))
-        # ¶àÍ·×¢ÒâÁ¦×Ü¹²µÄÎ¬Êı
+        # å¤šå¤´æ³¨æ„åŠ›æ€»å…±çš„ç»´æ•°
         self.all_head_size = self.num_attention_heads * self.attention_head_size
 
         self.query = nn.Linear(config.hidden_size, self.all_head_size)
@@ -199,7 +203,7 @@ class BertSelfAttention(nn.Module):
         # x shape: [batch_size, seq_length, self.num_attention_heads, self.attention_head_size]
         x = x.view(*new_x_shape)
 
-        ## ×îºóxshape (batch_size, num_attention_heads, seq_len, head_size)
+        ## æœ€åxshape (batch_size, num_attention_heads, seq_len, head_size)
         # x shape: [batch_size, self.num_attention_heads, seq_length, self.attention_head_size]
         return x.permute(0, 2, 1, 3)
 
@@ -211,14 +215,14 @@ class BertSelfAttention(nn.Module):
     ):
         # hidden_states shape: [batch_size, seq_length, config.hidden_size]
         # attention_mask shape: [batch_size, 1, seq_length, seq_length]
-        # self attention q,k,vÎªÍ¬Ò»¸öÖµ
+        # self attention q,k,vä¸ºåŒä¸€ä¸ªå€¼
 
-        # Èı¸öshapeÏàÍ¬: [batch_size, seq_length, self.all_head_size]
+        # ä¸‰ä¸ªshapeç›¸åŒ: [batch_size, seq_length, self.all_head_size]
         mixed_query_layer = self.query(hidden_states)
         mixed_key_layer = self.key(hidden_states)
         mixed_value_layer = self.value(hidden_states)
 
-        # Èı¸öshapeÏàÍ¬: [batch_size, self.num_attention_heads, seq_length, self.attention_head_size]
+        # ä¸‰ä¸ªshapeç›¸åŒ: [batch_size, self.num_attention_heads, seq_length, self.attention_head_size]
         query_layer = self.transpose_for_scores(mixed_query_layer)
         key_layer = self.transpose_for_scores(mixed_key_layer)
         value_layer = self.transpose_for_scores(mixed_value_layer)
@@ -229,9 +233,9 @@ class BertSelfAttention(nn.Module):
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
 
         # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
-        # attention_mask: ±»maskµÄ²¿·ÖÎª -10e12£¬Î´maskµÄ²¿·ÖÎ´0
-        # attention_mask»áÖ±½ÓÓëraw_attention_scoreÏà¼Ó È»ºó¹ısoftmax²Ù×÷
-        # Ôò±»maskµÄ²¿·Ö»á¼«ÆäĞ¡ Ïàµ±ÓÚ±»ºöÂÔ
+        # attention_mask: è¢«maskçš„éƒ¨åˆ†ä¸º -10e12ï¼Œæœªmaskçš„éƒ¨åˆ†æœª0
+        # attention_maskä¼šç›´æ¥ä¸raw_attention_scoreç›¸åŠ  ç„¶åè¿‡softmaxæ“ä½œ
+        # åˆ™è¢«maskçš„éƒ¨åˆ†ä¼šæå…¶å° ç›¸å½“äºè¢«å¿½ç•¥
         # attention_scores shape: [batch_size, self.num_attention_heads, seq_length, seq_length]
         attention_scores = attention_scores + attention_mask
 
@@ -243,18 +247,18 @@ class BertSelfAttention(nn.Module):
         # seem a bit unusual, but is taken from the original Transformer paper.
         attention_probs = self.dropout(attention_probs)
 
-        # ×¢ÒâÁ¦¼ÓÈ¨ torch.dot()
+        # æ³¨æ„åŠ›åŠ æƒ torch.dot()
         # context_layer: [batch_size, self.num_attention_heads, seq_length, self.attention_head_size]
         context_layer = torch.matmul(attention_probs, value_layer)
 
-        # °Ñ¼ÓÈ¨ºóµÄV reshape, µÃµ½[batch_size, length, embedding_dimension]
+        # æŠŠåŠ æƒåçš„V reshape, å¾—åˆ°[batch_size, length, embedding_dimension]
         # context_layer: [batch_size, seq_length, self.num_attention_heads, self.attention_head_size]
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         # context_layer: [batch_size, seq_length, self.all_head_size]
         context_layer = context_layer.view(*new_context_layer_shape)
 
-        # µÃµ½Êä³ö
+        # å¾—åˆ°è¾“å‡º
         if output_attentions:
             return context_layer, attention_probs
         return context_layer, None
@@ -297,7 +301,7 @@ class BertAttention(nn.Module):
         # attention_mask shape: [batch_size, 1, seq_length, seq_length]
 
         # multi head attention
-        # self_outputs: [batch_size, seq_length, all_head_size]¡£ÆäÖĞ£¬all_head_size==config.hidden_size
+        # self_outputs: [batch_size, seq_length, all_head_size]ã€‚å…¶ä¸­ï¼Œall_head_size==config.hidden_size
         # attention_matrix shape: [batch_size, self.num_attention_heads, seq_length, seq_length]
         self_outputs, attention_metrix = self.self(hidden_states, attention_mask, output_attentions=output_attentions)
 
@@ -319,7 +323,7 @@ class BertIntermediate(nn.Module):
         # fc
         # hidden_states shape: [batch_size, seq_length, config.intermediate_size]
         hidden_states = self.dense(hidden_states)
-        # ¼¤»îº¯Êı
+        # æ¿€æ´»å‡½æ•°
         hidden_states = self.intermediate_act_fn(hidden_states)
         return hidden_states
 
@@ -399,8 +403,8 @@ class BertEncoder(nn.Module):
                 all_encoder_layers.append(hidden_states)
                 all_attention_matrices.append(attention_matrix)
 
-        # Èç¹ûÖ»Êä³ö×îºóÒ»²ã ÔòÕâÀï¼ÓÉÏ×îºóÒ»²ã
-        # Èç¹ûÊä³öËùÓĞ²ã ÔòÑ­»·Àï¾ÍÌí¼ÓÁË ÕâÀï²»ĞèÒª
+        # å¦‚æœåªè¾“å‡ºæœ€åä¸€å±‚ åˆ™è¿™é‡ŒåŠ ä¸Šæœ€åä¸€å±‚
+        # å¦‚æœè¾“å‡ºæ‰€æœ‰å±‚ åˆ™å¾ªç¯é‡Œå°±æ·»åŠ äº† è¿™é‡Œä¸éœ€è¦
         if not output_all_encoded_layers:
             all_encoder_layers.append(hidden_states)
             all_attention_matrices.append(attention_matrix)
@@ -415,7 +419,7 @@ class BertPooler(nn.Module):
         self.activation = nn.Tanh()
 
     def forward(self, hidden_states):
-        # avg_pool: TrueÔò×îºóÒ»²ãavg_pool×÷ÎªÊä³ö£¬·ñÔòCLSÎªÊä³ö
+        # avg_pool: Trueåˆ™æœ€åä¸€å±‚avg_poolä½œä¸ºè¾“å‡ºï¼Œå¦åˆ™CLSä¸ºè¾“å‡º
         # We "pool" the model by simply taking the hidden state corresponding
         # to the first token.
         # hidden_states shape: [batch_size, seq_length, config.hidden_size]
@@ -537,13 +541,13 @@ class BertPreTrainedModel(nn.Module):
             [k for k in pretrained_state_dict.keys() \
                     if k[:4] != "bert" or "pooler" in k]))
 
-        # È¥³ıpoolerºÍ·ÇbertÏà¹ØµÄÈ¨ÖØ
+        # å»é™¤poolerå’Œébertç›¸å…³çš„æƒé‡
         pretrained_state_dict = {k: v for k, v in pretrained_state_dict.items() \
                 if k[:4] == "bert" and "pooler" not in k}
 
-        # Ô¤ÑµÁ·Êı¾İÓĞµÄÈ¨Öµ
+        # é¢„è®­ç»ƒæ•°æ®æœ‰çš„æƒå€¼
         pretrained_state_dict_name_set = pretrained_state_dict.keys()
-        # Ä£ĞÍĞèÒªµÄÈ¨ÖØ
+        # æ¨¡å‹éœ€è¦çš„æƒé‡
         model_state_dict_name_set = model.state_dict().keys()
 
         logging.info("unused weight in pretrained file: {}".format(
@@ -552,7 +556,7 @@ class BertPreTrainedModel(nn.Module):
             model_state_dict_name_set - pretrained_state_dict_name_set))
 
         if keep_tokens is not None:
-            ## ËµÃ÷¾«¼ò´Ê±íÁË£¬embeedding²ãÒ²Òª¹ıÂËÏÂ
+            ## è¯´æ˜ç²¾ç®€è¯è¡¨äº†ï¼Œembeeddingå±‚ä¹Ÿè¦è¿‡æ»¤ä¸‹
             embedding_weight_name = "bert.embeddings.word_embeddings.weight"
 
             pretrained_state_dict[embedding_weight_name] = \
@@ -579,14 +583,14 @@ class BertPreTrainedModel(nn.Module):
         """ Initialize the weights.
         """
         if isinstance(module, (nn.Linear)):
-            # ³õÊ¼ÏßĞÔÓ³Éä²ãµÄ²ÎÊıÎªÕıÌ¬·Ö²¼
+            # åˆå§‹çº¿æ€§æ˜ å°„å±‚çš„å‚æ•°ä¸ºæ­£æ€åˆ†å¸ƒ
             module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
         elif isinstance(module, BertLayerNorm):
-            # ³õÊ¼»¯LayerNormÖĞµÄalphaÎªÈ«1, betaÎªÈ«0
+            # åˆå§‹åŒ–LayerNormä¸­çš„alphaä¸ºå…¨1, betaä¸ºå…¨0
             module.beta.data.zero_()
             module.gamma.data.fill_(1.0)
         if isinstance(module, nn.Linear) and module.bias is not None:
-            # ³õÊ¼»¯Æ«ÖÃÎª0
+            # åˆå§‹åŒ–åç½®ä¸º0
             module.bias.data.zero_()
 
 
@@ -621,21 +625,21 @@ class BertModel(BertPreTrainedModel):
         output_all_encoded_layers=True,
         output_attentions=False
     ):
-        # 0Îªpad id ÕâÀïÊÇ½«pad maskµô
+        # 0ä¸ºpad id è¿™é‡Œæ˜¯å°†pad maskæ‰
         # input ids shape: [batch_size, seq_length]
         logging.debug("input ids shape: {}".format(input_ids.shape))
         logging.debug("input ids[0]: {}".format(input_ids[0]))
         extended_attention_mask = (input_ids > 0).float()
 
 
-        # ×¢ÒâÁ¦¾ØÕómask: [batch_size, 1, 1, seq_length]
+        # æ³¨æ„åŠ›çŸ©é˜µmask: [batch_size, 1, 1, seq_length]
         # extended_attention_mask shape: [batch_size, 1, 1, seq_length]
         extended_attention_mask = extended_attention_mask.unsqueeze(1).unsqueeze(2)
         logging.debug("extended_attention_mask shape1: {}".format(extended_attention_mask.shape))
 
         if attention_mask is not None :
-            ## Èç¹û´«½øÀ´µÄ×¢ÒâÁ¦mask²»ÊÇNone£¬ÄÇ¾ÍÖ±½ÓÓÃ´«½øÀ´µÄ×¢ÒâÁ¦mask ³Ë Ô­Ê¼mask
-            # ×¢Òâ Ô­Ê¼maskÊÇextended_attention_mask£¬Õâ¸öÊÇÓÃÀ´°Ñpad²¿·ÖÖÃÎª0£¬È¥µôpad²¿·ÖÓ°Ïì
+            ## å¦‚æœä¼ è¿›æ¥çš„æ³¨æ„åŠ›maskä¸æ˜¯Noneï¼Œé‚£å°±ç›´æ¥ç”¨ä¼ è¿›æ¥çš„æ³¨æ„åŠ›mask ä¹˜ åŸå§‹mask
+            # æ³¨æ„ åŸå§‹maskæ˜¯extended_attention_maskï¼Œè¿™ä¸ªæ˜¯ç”¨æ¥æŠŠpadéƒ¨åˆ†ç½®ä¸º0ï¼Œå»æ‰padéƒ¨åˆ†å½±å“
             # attention_mask shape: [batch_size, 1, seq_length, seq_length]
             extended_attention_mask = attention_mask * extended_attention_mask
             logging.debug("attention_mask shape: {}".format(attention_mask.shape))
@@ -644,16 +648,16 @@ class BertModel(BertPreTrainedModel):
         logging.debug("extended_attention_mask shape2: {}".format(extended_attention_mask.shape))
         logging.debug("extended_attention_mask[0][0]: {}".format(extended_attention_mask[0][0]))
 
-        # Èç¹ûtoken_type_idsÎªNoneÔòÄ¬ÈÏÎª¹²Ò»¾ä»°
+        # å¦‚æœtoken_type_idsä¸ºNoneåˆ™é»˜è®¤ä¸ºå…±ä¸€å¥è¯
         if token_type_ids is None:
             token_type_ids = torch.zeros_like(input_ids)
         # token_type_ids shape: [batch_size, seq_length]
         logging.debug("token_type_ids shape: {}".format(token_type_ids.shape))
 
         # extended_attention_mask = extended_attention_mask.to(dtype=next(self.parameters()).dtype)  # fp16 compatibility
-        # ±»maskµÄ²¿·ÖÎª -10e12£¬Î´maskµÄ²¿·ÖÎ´0
-        # extended_attention_mask»áÖ±½ÓÓëraw_attention_scoreÏà¼Ó È»ºó¹ısoftmax²Ù×÷
-        # Ôò±»maskµÄ²¿·Ö»á¼«ÆäĞ¡ Ïàµ±ÓÚ±»ºöÂÔ
+        # è¢«maskçš„éƒ¨åˆ†ä¸º -10e12ï¼Œæœªmaskçš„éƒ¨åˆ†æœª0
+        # extended_attention_maskä¼šç›´æ¥ä¸raw_attention_scoreç›¸åŠ  ç„¶åè¿‡softmaxæ“ä½œ
+        # åˆ™è¢«maskçš„éƒ¨åˆ†ä¼šæå…¶å° ç›¸å½“äºè¢«å¿½ç•¥
         extended_attention_mask = (1.0 - extended_attention_mask) * -10e12
         # extended_attention_mask shape: [batch_size, 1, seq_length, seq_length]
         logging.debug("extended_attention_mask shape3: {}".format(extended_attention_mask.shape))
@@ -665,7 +669,7 @@ class BertModel(BertPreTrainedModel):
         logging.debug("embedding_output shape: {}".format(embedding_output.shape))
         logging.debug("embedding_output[0][0][:20]: {}".format(embedding_output[0][0][:20]))
 
-        # ·µ»Øconfig.num_hidden_layers²ãµÄÊä³ö
+        # è¿”å›config.num_hidden_layerså±‚çš„è¾“å‡º
         encoder_layers, all_attention_matrices = self.encoder(
             embedding_output,
             attention_mask=extended_attention_mask,
@@ -684,13 +688,13 @@ class BertModel(BertPreTrainedModel):
         logging.debug("pooled_output shape: {}".format(pooled_output.shape))
 
         if not output_all_encoded_layers:
-            # Èç¹û²»ÓÃÊä³öËùÓĞencoder²ã
+            # å¦‚æœä¸ç”¨è¾“å‡ºæ‰€æœ‰encoderå±‚
             encoder_layers = encoder_layers[-1]
 
         if output_attentions:
             return encoder_layers, pooled_output, all_attention_matrices
 
-        # ·µ»Ø¸÷²ãµÄÊä³ö ºÍ×îºó²ã³Ø»¯½á¹û
+        # è¿”å›å„å±‚çš„è¾“å‡º å’Œæœ€åå±‚æ± åŒ–ç»“æœ
         return encoder_layers, pooled_output
 
 
@@ -712,7 +716,7 @@ class BertForClassification(BertPreTrainedModel):
 
     def compute_loss(self, softmax_pred, labels):
         """
-        ¼ÆËãloss
+        è®¡ç®—loss
         softmax_pred: (batch_size, 1)
         """
         softmax_pred = softmax_pred.view(-1, self.config.num_class)
@@ -725,17 +729,17 @@ class BertForClassification(BertPreTrainedModel):
 
         return loss
 
-    def forward(self, input_ids, token_type_ids=None, position_ids=None, labels=None, use_layer_num=-1, with_softmax=True, **kwargs):
-        # Ä¬ÈÏ-1 È¡×îºóÒ»²ã
+    def forward(self, input_ids, token_type_ids=None, position_ids=None, labels=None, use_layer_num=-1, with_softmax=True, only_loss=False, **kwargs):
+        # é»˜è®¤-1 å–æœ€åä¸€å±‚
         if use_layer_num != -1 and (use_layer_num < 0 or use_layer_num > 11):
-            # Ô½½ç
-            raise Exception("²ãÊıÑ¡Ôñ·¶Î§[0, 12)£¬Ä¬ÈÏÎª-1£¬¼´×îºóÒ»²ã")
+            # è¶Šç•Œ
+            raise Exception("å±‚æ•°é€‰æ‹©èŒƒå›´[0, 12)ï¼Œé»˜è®¤ä¸º-1ï¼Œå³æœ€åä¸€å±‚")
         enc_layers, _ = self.bert(input_ids, token_type_ids=token_type_ids,
             position_ids=position_ids, output_all_encoded_layers=True)
 
         squence_out = enc_layers[use_layer_num]
 
-        cls_token = squence_out[:, 0]# È¡³öclsÏòÁ¿ ½øĞĞ·ÖÀà
+        cls_token = squence_out[:, 0]# å–å‡ºclså‘é‡ è¿›è¡Œåˆ†ç±»
 
         predictions = self.final_fc(cls_token)
 
@@ -747,15 +751,17 @@ class BertForClassification(BertPreTrainedModel):
                 }
 
         if labels is not None:
-            ## ¼ÆËãloss
+            ## è®¡ç®—loss
             loss = self.compute_loss(softmax_pred, labels)
             res_dict["loss"] = loss
 
+        if only_loss:
+            res_dict = {"loss": res_dict["loss"]}
         return res_dict
 
 
 class BertForSeqSim(BertPreTrainedModel):
-    """¿É×öseq2seq Í¬Ê±Ò²¿ÉÒÔsim
+    """å¯åšseq2seq åŒæ—¶ä¹Ÿå¯ä»¥sim
     """
     def __init__(self, config):
         self.seq_task = config.other_config.pop("seq_task", False)
@@ -765,14 +771,14 @@ class BertForSeqSim(BertPreTrainedModel):
         super(BertForSeqSim, self).__init__(config)
         self.bert = BertModel(self.config)
 
-        # ½«attention_weight¿´×÷ÊÇÁĞÏòÁ¿»¹ÊÇĞĞÏòÁ¿
-        # ÎÒÈÏÎªÊÇĞĞÏòÁ¿
-        # µ«ÂÛÎÄBISON : BM25-weighted Self-Attention Framework for Multi-Fields Document SearchµÄgithubÀïÊÇÁĞÏòÁ¿
+        # å°†attention_weightçœ‹ä½œæ˜¯åˆ—å‘é‡è¿˜æ˜¯è¡Œå‘é‡
+        # æˆ‘è®¤ä¸ºæ˜¯è¡Œå‘é‡
+        # ä½†è®ºæ–‡BISON : BM25-weighted Self-Attention Framework for Multi-Fields Document Searchçš„githubé‡Œæ˜¯åˆ—å‘é‡
         # https://github.com/cadobe/bison/issues/3
-        # ¸Ğ¾õËûÕâ¸ö²»Ì«ĞĞ
+        # æ„Ÿè§‰ä»–è¿™ä¸ªä¸å¤ªè¡Œ
         #self.is_vertical = config.is_vertical
 
-        # Èç¹û×öseq2seqÈÎÎñ ÔòÒª¼Ódecoder
+        # å¦‚æœåšseq2seqä»»åŠ¡ åˆ™è¦åŠ decoder
         if self.seq_task:
             self.decoder = BertLMPredictionHead(config, self.bert.embeddings.word_embeddings.weight)
             self.vocab_size = config.vocab_size
@@ -783,12 +789,12 @@ class BertForSeqSim(BertPreTrainedModel):
                 self.triplet_margin = config.triplet_margin
                 logging.info("triplet_margin: {}".format(self.triplet_margin))
                 self.relu = torch.nn.ReLU()
-                # Í¨ÓÃµÄbatch pair wiseÊ±¼ÆËãloss²»±»ÄÉÈë¼ÆËãµÄÎ»ÖÃ
-                # self.batch_pair_wise_mask[i][j][k]Îª1£¨¼´²»±»¹ıÂË£©ĞèÒªÂú×ãÏÂÃæÁ½¸öÌõ¼ş£º
-                # 1. i,j,k»¥²»ÏàÍ¬£º
-                #     a. i=j£¨»òi=k£©Ê±£¬ij£¨ik£©±íÊ¾×ÔÉíÓë×ÔÉíµÄÏàËÆ¶È£¬Ò»¶¨ÎªÒ»£¬ÓÃÀ´ÑµÁ·Ã»ÓĞÒâÒå
-                #     b. j=kÊ±£¬ijÓëikÊÇÍ¬Ò»¸öÑù±¾ÓëanchorµÄÏàËÆ¶È²î¾à£¬Ò»¶¨ÏàµÈ£¬ÓÃÀ´ÑµÁ·Ò²Ã»ÓĞÒâÒå
-                # 2. j < k£ºtriplet_loss[i][j][k]ºÍtriplet_loss[i][j][k]ÊÇÒ»ÑùµÄ£¬Ã»ÓĞ±ØÒªËãÁ½´Î
+                # é€šç”¨çš„batch pair wiseæ—¶è®¡ç®—lossä¸è¢«çº³å…¥è®¡ç®—çš„ä½ç½®
+                # self.batch_pair_wise_mask[i][j][k]ä¸º1ï¼ˆå³ä¸è¢«è¿‡æ»¤ï¼‰éœ€è¦æ»¡è¶³ä¸‹é¢ä¸¤ä¸ªæ¡ä»¶ï¼š
+                # 1. i,j,käº’ä¸ç›¸åŒï¼š
+                #     a. i=jï¼ˆæˆ–i=kï¼‰æ—¶ï¼Œijï¼ˆikï¼‰è¡¨ç¤ºè‡ªèº«ä¸è‡ªèº«çš„ç›¸ä¼¼åº¦ï¼Œä¸€å®šä¸ºä¸€ï¼Œç”¨æ¥è®­ç»ƒæ²¡æœ‰æ„ä¹‰
+                #     b. j=kæ—¶ï¼Œijä¸ikæ˜¯åŒä¸€ä¸ªæ ·æœ¬ä¸anchorçš„ç›¸ä¼¼åº¦å·®è·ï¼Œä¸€å®šç›¸ç­‰ï¼Œç”¨æ¥è®­ç»ƒä¹Ÿæ²¡æœ‰æ„ä¹‰
+                # 2. j < kï¼štriplet_loss[i][j][k]å’Œtriplet_loss[i][j][k]æ˜¯ä¸€æ ·çš„ï¼Œæ²¡æœ‰å¿…è¦ç®—ä¸¤æ¬¡
                 self.batch_pair_wise_mask = None
 
             if self.sim_loss_type == "both" or self.sim_loss_type == "pointwise":
@@ -798,50 +804,50 @@ class BertForSeqSim(BertPreTrainedModel):
             assert not self.sim_task, "sim_loss_type is required when sim_task on"
 
     def gen_seq_mask(self, token_type_ids):
-        # ¹¹½¨bert seq2seqÈÎÎñµÄmask
+        # æ„å»ºbert seq2seqä»»åŠ¡çš„mask
 
-        # Éètext_a³¤¶ÈÎªlen_a£¬text_b³¤¶ÈÎªlen_b
-        # Ôòtoken_type_id¸ÃĞĞ = [0, 0, ..., 0, 1, 1, ...,1]
-        # ÆäÖĞ0ÓĞlen_a¸ö£¬1ÓĞlen_b¸ö
+        # è®¾text_aé•¿åº¦ä¸ºlen_aï¼Œtext_bé•¿åº¦ä¸ºlen_b
+        # åˆ™token_type_idè¯¥è¡Œ = [0, 0, ..., 0, 1, 1, ...,1]
+        # å…¶ä¸­0æœ‰len_aä¸ªï¼Œ1æœ‰len_bä¸ª
 
         # token_type_id shape: [batch_size, seq_length]
         seq_len = token_type_ids.shape[1]
         ones = torch.ones((1, 1, seq_len, seq_len), dtype=torch.float32, device=token_type_ids.device)
         # a_mask shape: [1, 1, seq_length, seq_length]
-        a_mask = ones.tril() # ÏÂÈı½Ç¾ØÕó
+        a_mask = ones.tril() # ä¸‹ä¸‰è§’çŸ©é˜µ
 
-        # Éètext_a="ÄãÏë³ÔÉ¶", text_b="°×Õ¶¼¦"
-        # Ôòtext_a³¤¶ÈÎª6(¼ÓclsºÍsep) text_b³¤¶ÈÎª4(¼Ósep)
-        # seq2seqµÄattention_maskÎª
+        # è®¾text_a="ä½ æƒ³åƒå•¥", text_b="ç™½æ–©é¸¡"
+        # åˆ™text_aé•¿åº¦ä¸º6(åŠ clså’Œsep) text_bé•¿åº¦ä¸º4(åŠ sep)
+        # seq2seqçš„attention_maskä¸º
         # [CLS] : [ 1 1 1 1 1 1 0 0 0 0]
-        # Äã    : [ 1 1 1 1 1 1 0 0 0 0]
-        # Ïë    : [ 1 1 1 1 1 1 0 0 0 0]
-        # ³Ô    : [ 1 1 1 1 1 1 0 0 0 0]
-        # É¶    : [ 1 1 1 1 1 1 0 0 0 0]
+        # ä½     : [ 1 1 1 1 1 1 0 0 0 0]
+        # æƒ³    : [ 1 1 1 1 1 1 0 0 0 0]
+        # åƒ    : [ 1 1 1 1 1 1 0 0 0 0]
+        # å•¥    : [ 1 1 1 1 1 1 0 0 0 0]
         # [SEP] : [ 1 1 1 1 1 1 0 0 0 0]
-        # °×    : [ 1 1 1 1 1 1 1 0 0 0]
-        # ÇĞ    : [ 1 1 1 1 1 1 1 1 0 0]
-        # ¼¦    : [ 1 1 1 1 1 1 1 1 1 0]
+        # ç™½    : [ 1 1 1 1 1 1 1 0 0 0]
+        # åˆ‡    : [ 1 1 1 1 1 1 1 1 0 0]
+        # é¸¡    : [ 1 1 1 1 1 1 1 1 1 0]
         # [SEP] : [ 1 1 1 1 1 1 1 1 1 1]
-        # Êµ¼ÊÔ¤²âÖĞ,text_bµÄ×îºóÒ»Î»sepµÄÔ¤²â½á¹ûºöÂÔ,ÒòÎªµ½[SEP]ÔòÉú³É½ØÖ¹
+        # å®é™…é¢„æµ‹ä¸­,text_bçš„æœ€åä¸€ä½sepçš„é¢„æµ‹ç»“æœå¿½ç•¥,å› ä¸ºåˆ°[SEP]åˆ™ç”Ÿæˆæˆªæ­¢
 
         # s_ex12 shape: [batch_size, 1, 1, seq_length]
-        # 1 - ĞĞmask
+        # 1 - è¡Œmask
         s_ex12 = token_type_ids.unsqueeze(1).unsqueeze(2).float()
 
-        # 1 - ÁĞmask
+        # 1 - åˆ—mask
         # s_ex12 shape: [batch_size, 1, seq_length, 1]
         s_ex13 = token_type_ids.unsqueeze(1).unsqueeze(3).float()
 
         # (1.0 - s_ex12) * (1.0 - s_ex13) shape: [batch_size, 1, seq_length, seq_length]
-        # ĞĞmaxk*ÁĞmask¼´attentionÊ±Ê¼ÖÕĞèÒªµÄÔªËØ
-        # ÔÚ×îºóÁ½Î¬[seq_length, seq_length]µÄ¾ØÕóÖĞ
-        # ×óÉÏ·½[len_a, len_a]´óĞ¡µÄ¾ØÕóÔªËØÎª1£¬ÆäÓàÔªËØ¾ùÎª0
+        # è¡Œmaxk*åˆ—maskå³attentionæ—¶å§‹ç»ˆéœ€è¦çš„å…ƒç´ 
+        # åœ¨æœ€åä¸¤ç»´[seq_length, seq_length]çš„çŸ©é˜µä¸­
+        # å·¦ä¸Šæ–¹[len_a, len_a]å¤§å°çš„çŸ©é˜µå…ƒç´ ä¸º1ï¼Œå…¶ä½™å…ƒç´ å‡ä¸º0
 
         # s_ex13 * a_mask shape: [batch_size, 1, seq_length, seq_length]
-        # ÏÂÈı½Ç¾ØÕó*(1-ÁĞmask)Ö÷ÒªÊÇÎªÁËÑµÁ·Ê±²»ÄÜµÃµ½ºóÃæµÄĞÅÏ¢
-        # ÔÚ×îºóÁ½Î¬[seq_length, seq_length]µÄ¾ØÕóÖĞ
-        # Ç°len_aĞĞÈ«Îª0£¬ºólen_bĞĞ£¬Ç°len_aÈ«Îª1£¬ÓÒÏÂ½Ç[len_b, len_b]µÄ¾ØÕóÎªÏÂÈı½Ç¾ØÕó
+        # ä¸‹ä¸‰è§’çŸ©é˜µ*(1-åˆ—mask)ä¸»è¦æ˜¯ä¸ºäº†è®­ç»ƒæ—¶ä¸èƒ½å¾—åˆ°åé¢çš„ä¿¡æ¯
+        # åœ¨æœ€åä¸¤ç»´[seq_length, seq_length]çš„çŸ©é˜µä¸­
+        # å‰len_aè¡Œå…¨ä¸º0ï¼Œålen_bè¡Œï¼Œå‰len_aå…¨ä¸º1ï¼Œå³ä¸‹è§’[len_b, len_b]çš„çŸ©é˜µä¸ºä¸‹ä¸‰è§’çŸ©é˜µ
         # a_mask shape: [batch_size, 1, seq_length, seq_length]
         a_mask = (1.0 - s_ex12) * (1.0 - s_ex13) + s_ex13 * a_mask
         return a_mask
@@ -853,6 +859,7 @@ class BertForSeqSim(BertPreTrainedModel):
             labels=None,
             output_all_encoded_layers=True,
             output_attentions=False,
+            only_loss=False,
             ):
 
         # input_tensor shape: [batch_size, seq_length]
@@ -860,7 +867,7 @@ class BertForSeqSim(BertPreTrainedModel):
         #logging.debug("input_tensor[0]: {}".format(input_tensor[0]))
         #logging.debug("input_tensor text: {}".format("/ ".join([self.ix2word[x] for x in input_tensor[0].cpu().numpy()])))
 
-        # token_type_id ¾ä×Óa¼°padµÄ²¿·Ö¶¼Îª0
+        # token_type_id å¥å­aåŠpadçš„éƒ¨åˆ†éƒ½ä¸º0
         # token_type_id shape: [batch_size, seq_length]
         logging.debug("token_type_ids shape: {}".format(token_type_ids.shape))
         #logging.debug("token_type_ids[0]: {}".format(token_type_ids[0]))
@@ -872,12 +879,15 @@ class BertForSeqSim(BertPreTrainedModel):
             logging.debug("labels shape: {}".format(labels.shape))
             logging.debug("labels[:20] : {}".format(labels[:20]))
 
-        # Èç¹ûÒª½øĞĞseq2seqÈÎÎñ ÔòĞèÒª¶¨ÖÆseq2seqµÄattention_mask ·ñÔòÎªNone
+        # å¦‚æœè¦è¿›è¡Œseq2seqä»»åŠ¡ åˆ™éœ€è¦å®šåˆ¶seq2seqçš„attention_mask å¦åˆ™ä¸ºNone
         # attention_mask shape: [batch_size, 1, seq_length, seq_length]
         attention_mask = self.gen_seq_mask(token_type_ids) if self.seq_task else None
+        #logging.info("input ids device: {}".format(input_ids.device))
+        #logging.info("token_type_ids device: {}".format(token_type_ids.device))
+        #logging.info("attention mask device: {}".format(attention_mask.device))
 
-        # ÊäÈëbert µÃµ½¸÷²ãÊä³ö ºÍ pool_outÊä³ö
-        # ¸÷²ãµÄÊä³öshape£º[batch_size, seq_length, config.hidden_size]
+        # è¾“å…¥bert å¾—åˆ°å„å±‚è¾“å‡º å’Œ pool_outè¾“å‡º
+        # å„å±‚çš„è¾“å‡ºshapeï¼š[batch_size, seq_length, config.hidden_size]
         enc_layers, pool_out = self.bert(
                 input_ids,
                 position_ids=position_ids,
@@ -887,69 +897,72 @@ class BertForSeqSim(BertPreTrainedModel):
                 output_attentions=output_attentions)
 
         res_dict = {
-                "text_output": pool_out,
-                }
+            "text_output": pool_out,
+        }
 
-        # È¡×îºóÒ»²ã
-        # Ô¤²â¸÷tokenÊä³ö£¨³ı×îºóÒ»¸ötoken£¬Ò²¾ÍÊÇ½áÎ²µÄ[SEP]£©
-        # Ô¤²âµÄÊä³öÒªÈ¥³ı×îºóÒ»¸öÔ¤²âµÄÖµ ÔÚ¹¹½¨ÑµÁ·Êı¾İµÄÊ±ºò labelÒ²»á±ÈÊäÈëµÄseq_lengthÉÙ1
+        # è®¡ç®—loss
+        total_loss = 0.0
+
+        # å–æœ€åä¸€å±‚
+        # é¢„æµ‹å„tokenè¾“å‡ºï¼ˆé™¤æœ€åä¸€ä¸ªtokenï¼Œä¹Ÿå°±æ˜¯ç»“å°¾çš„[SEP]ï¼‰
+        # é¢„æµ‹çš„è¾“å‡ºè¦å»é™¤æœ€åä¸€ä¸ªé¢„æµ‹çš„å€¼ åœ¨æ„å»ºè®­ç»ƒæ•°æ®çš„æ—¶å€™ labelä¹Ÿä¼šæ¯”è¾“å…¥çš„seq_lengthå°‘1
         # enc_layers[-1] shape: [batch_size, seq_length, config.hidden_size]
         # predictions shape: [batch_size, seq_length-1, self.vocab_size] or None
         if self.seq_task:
-            predictions = self.decoder(enc_layers[-1])[:, :-1].contiguous()
+            predictions = self.decoder(enc_layers[-1])
             res_dict["token_output"] = predictions
-
-        if labels is not None:
-            # ¼ÆËãloss
-            total_loss = 0.0
-            if self.seq_task:
-                # ¼ÆËãlossÊ±Ö»¿¼ÂÇtarget_maskÖĞÎª1µÄ ÕâÀïÈ¥³ıµÚÒ»¸öÎª0µÄ ÓëpredictionsºÍlabelsµÄÎ¬¶È¶ÔÆë
-                # ÕâÀïÈ¡Ç°Ãæ ÊÇÒòÎªÔÚ¹¹ÔìlabelÊ± Ò²ÊÇÈ¥µôÁËÇ°Ò»¸ö ÒÔ´ïµ½Ô­ÊäÈë×óÒÆÒ»Î»
-                # ´ËÊ±labels¾ÍÊÇ¸÷Î»ÖÃµÄÏÂÒ»¸öÎ»ÖÃĞèÒªÊä³öµÄvocabµÄÁĞ±í
-                # ËùÒÔÕâÀïÒ²Ó¦¸Ã´ÓÇ°ÃæÈ¥³ı
-                # Ğ§¹ûÊÇ target_mask±¾À´ÊÇ´ÓµÚÒ»¸öSEP£¨²»°üº¬SEP£©Ö®ºóÎª1 ±íÊ¾µÚ¶ş¾ä»°¿ªÊ¼
-                # ÏÖÔÚÇ°ÃæÈ¥³ıÒ»¸ö
-                # Ôòtarget_mask´ÓµÚÒ»¸öSEP£¨°üº¬SEP£©¿ªÊ¼Îª1£¬±íÊ¾´ÓµÚÒ»¸öSEP¿ªÊ¼¾ÍÒªÔ¤²âÏÂÒ»¸övocabÊÇÊ²Ã´
+            
+            if torch.any(token_type_ids > 0):
+                # è®¡ç®—lossæ—¶åªè€ƒè™‘target_maskä¸­ä¸º1çš„ è¿™é‡Œå»é™¤ç¬¬ä¸€ä¸ªä¸º0çš„ ä¸predictionså’Œlabelsçš„ç»´åº¦å¯¹é½
+                # è¿™é‡Œå–å‰é¢ æ˜¯å› ä¸ºåœ¨æ„é€ labelæ—¶ ä¹Ÿæ˜¯å»æ‰äº†å‰ä¸€ä¸ª ä»¥è¾¾åˆ°åŸè¾“å…¥å·¦ç§»ä¸€ä½
+                # æ­¤æ—¶labelså°±æ˜¯å„ä½ç½®çš„ä¸‹ä¸€ä¸ªä½ç½®éœ€è¦è¾“å‡ºçš„vocabçš„åˆ—è¡¨
+                # æ‰€ä»¥è¿™é‡Œä¹Ÿåº”è¯¥ä»å‰é¢å»é™¤
+                # æ•ˆæœæ˜¯ target_maskæœ¬æ¥æ˜¯ä»ç¬¬ä¸€ä¸ªSEPï¼ˆä¸åŒ…å«SEPï¼‰ä¹‹åä¸º1 è¡¨ç¤ºç¬¬äºŒå¥è¯å¼€å§‹
+                # ç°åœ¨å‰é¢å»é™¤ä¸€ä¸ª
+                # åˆ™target_maskä»ç¬¬ä¸€ä¸ªSEPï¼ˆåŒ…å«SEPï¼‰å¼€å§‹ä¸º1ï¼Œè¡¨ç¤ºä»ç¬¬ä¸€ä¸ªSEPå¼€å§‹å°±è¦é¢„æµ‹ä¸‹ä¸€ä¸ªvocabæ˜¯ä»€ä¹ˆ
                 target_mask = token_type_ids[:, 1:].contiguous()
                 logging.debug("target_mask[0]: {}".format(target_mask[0]))
-                # ÊäÈëµÄÊı¾İ×óÒÆÒ»Î» ¾ÍÊÇÊä³öµÄÄ¿±êÖµ
+                # è¾“å…¥çš„æ•°æ®å·¦ç§»ä¸€ä½ å°±æ˜¯è¾“å‡ºçš„ç›®æ ‡å€¼
                 seq_labels = input_ids[:, 1:].contiguous()
-                total_loss += self.compute_seq_loss(predictions, seq_labels, target_mask)
+                total_loss += self.compute_seq_loss(predictions[:, :-1].contiguous(), seq_labels, target_mask)
 
-            if self.sim_task:
+        if self.sim_task:
+            if labels is not None:
                 total_loss += self.compute_sim_loss(pool_out, labels)
 
-            logging.debug("total_loss: {}".format(total_loss))
+        logging.debug("total_loss: {}".format(total_loss))
 
-            res_dict["loss"] = total_loss
+        res_dict["loss"] = total_loss
+        if only_loss:
+            res_dict = {"loss": res_dict["loss"]}
 
         return res_dict
 
     def compute_seq_loss(self, predictions, labels, target_mask):
-        # ´òÆ½
+        # æ‰“å¹³
         # predictions shape: [batch_size*(seq_length-1), self.vocab_size]
         predictions = predictions.view(-1, self.vocab_size)
 
-        # ´òÆ½
+        # æ‰“å¹³
         # labels shape: [batch_size*(seq_length-1)]
         labels = labels.view(-1)
         logging.debug("labels shape: {}".format(labels.shape))
 
-        # Ö»ÓĞtext_b ¼´Îª1µÄĞèÒªÔ¤²â
+        # åªæœ‰text_b å³ä¸º1çš„éœ€è¦é¢„æµ‹
         target_mask = target_mask.view(-1).float()
-        # ¼ÆËãloss
-        # Í¨¹ımask È¡Ïû pad ºÍ¾ä×Óa²¿·ÖÔ¤²âµÄÓ°Ïì
+        # è®¡ç®—loss
+        # é€šè¿‡mask å–æ¶ˆ pad å’Œå¥å­aéƒ¨åˆ†é¢„æµ‹çš„å½±å“
         loss = (self.ce_loss(predictions, labels) * target_mask).sum() / target_mask.sum()
         logging.debug("seq loss: {}".format(loss))
         return loss
 
     def compute_sim_loss(self, pool_out, labels):
         """
-        target_mask : ¾ä×Óa²¿·ÖºÍpad²¿·ÖÈ«Îª0£¬ ¶ø¾ä×Ób²¿·ÖÎª1
+        target_mask : å¥å­aéƒ¨åˆ†å’Œpadéƒ¨åˆ†å…¨ä¸º0ï¼Œ è€Œå¥å­béƒ¨åˆ†ä¸º1
         """
         logging.debug("pool_out shape: {}".format(pool_out.shape))
         logging.debug("labels shape: {}".format(labels.shape))
-        # ¼ÆËãÏàËÆ¶ÈµÄloss
+        # è®¡ç®—ç›¸ä¼¼åº¦çš„loss
         sim_loss = {
                 "pointwise": self.compute_point_wise_loss,
                 "pairwise": self.compute_pair_wise_loss,
@@ -963,23 +976,23 @@ class BertForSeqSim(BertPreTrainedModel):
                 self.compute_pair_wise_loss(text_vecs, labels)
 
     def compute_pair_wise_loss(self, text_vecs, labels):
-        # ¹¹½¨ÏàËÆ¶ÈµÄÄ¿±ê¾ØÕó label_idÒ»ÖÂµÄÔòÏàËÆ
+        # æ„å»ºç›¸ä¼¼åº¦çš„ç›®æ ‡çŸ©é˜µ label_idä¸€è‡´çš„åˆ™ç›¸ä¼¼
         batch_size = labels.shape[0]
         logging.debug("batch size: {}".format(batch_size))
         labels = labels.unsqueeze(dim=0)
         logging.debug("labels shape: {}".format(labels.shape))
         logging.debug("labels: {}".format(labels))
-        # Ä¿±êÆ¥Åä¾ØÕó
+        # ç›®æ ‡åŒ¹é…çŸ©é˜µ
         # target_label shape: [batch_size, batch_size]
         target_label = (labels.t() == labels) * 1
         logging.debug("target_label shape: {}".format(target_label.shape))
         logging.debug("target_label: {}".format(target_label))
 
-        # ¼ÆËã¸Ãbatch¸÷ÏàËÆ¶È
-        # ¹éÒ»»¯¾äÏòÁ¿
+        # è®¡ç®—è¯¥batchå„ç›¸ä¼¼åº¦
+        # å½’ä¸€åŒ–å¥å‘é‡
         text_vecs = nn.functional.normalize(text_vecs, dim=1)
         logging.debug("text_vecs: {}".format(text_vecs))
-        # ¼ÆËãÏàËÆ¶È
+        # è®¡ç®—ç›¸ä¼¼åº¦
         cos_sim_vec = torch.mm(text_vecs, text_vecs.t())
         logging.debug("cos_sim_vec shape: {}".format(cos_sim_vec.shape))
         logging.debug("cos_sim_vec: {}".format(cos_sim_vec))
@@ -999,95 +1012,95 @@ class BertForSeqSim(BertPreTrainedModel):
         #    [0.4, 0.3, 0.3, 1.0],
         #], device=labels.device)
 
-        # ¼ÆËãtriplet loss¾ØÕótriplet_loss[i][j][k] = triplet_loss(cos_sim_ij, cos_sim_ik)
+        # è®¡ç®—triplet lossçŸ©é˜µtriplet_loss[i][j][k] = triplet_loss(cos_sim_ij, cos_sim_ik)
         # triplet_loss(cos_sim_pos, cos_sim_neg, margin) = cos_sim_neg - cos_sim_pos + margin
 
-        # ÏÈ¼ÆËã
+        # å…ˆè®¡ç®—
         # cos_sim_minus[i][j][k] = cos_sim_vec[i][j] - cos_sim_vec[i][k]
-        # Ñù±¾ijµÄÏàËÆ¶ÈÓëÑù±¾ikµÄÏàËÆ¶ÈµÄ²î¾à
+        # æ ·æœ¬ijçš„ç›¸ä¼¼åº¦ä¸æ ·æœ¬ikçš„ç›¸ä¼¼åº¦çš„å·®è·
         # cos_sim_minus shape: [batch_size, batch_size, batch_size]
         cos_sim_minus = cos_sim_vec.unsqueeze(2) - cos_sim_vec.unsqueeze(1)
 
-        # ÒòÎªÖ®ºóÖ»»á¿¼ÂÇijºÍjk Ò»¸öÊÇÕıÑù±¾Ò»¸öÊÇ¸ºÑù±¾µÄÇé¿ö
-        # ËùÒÔÕâÀïÖ»¿´ijÊÇ·ñÎª¸ºÑù±¾
-        # ÒòÎªtriplet_lossĞèÒª¸ºÑù±¾ÏàËÆ¶È-ÕıÑù±¾ÏàËÆ¶È
-        # µ±Ñù±¾ijÎª¸ºÑù±¾Ê± triplet_loss = cos_sim_ij - cos_sim_ik + margin
-        # µ±Ñù±¾ijÎªÕıÑù±¾Ê± triplet_loss = cos_sim_ik - cos_sim_ij + margin
-        # ËùÒÔtriplet_loss_ijk = pos_flag_ij * cos_sim_minus_ijk + margin
-        # Ñù±¾ijÎª¸ºÑù±¾Ê± pos_flag_ij = 1 ·ñÔò pos_flag_ij = -1
+        # å› ä¸ºä¹‹ååªä¼šè€ƒè™‘ijå’Œjk ä¸€ä¸ªæ˜¯æ­£æ ·æœ¬ä¸€ä¸ªæ˜¯è´Ÿæ ·æœ¬çš„æƒ…å†µ
+        # æ‰€ä»¥è¿™é‡Œåªçœ‹ijæ˜¯å¦ä¸ºè´Ÿæ ·æœ¬
+        # å› ä¸ºtriplet_losséœ€è¦è´Ÿæ ·æœ¬ç›¸ä¼¼åº¦-æ­£æ ·æœ¬ç›¸ä¼¼åº¦
+        # å½“æ ·æœ¬ijä¸ºè´Ÿæ ·æœ¬æ—¶ triplet_loss = cos_sim_ij - cos_sim_ik + margin
+        # å½“æ ·æœ¬ijä¸ºæ­£æ ·æœ¬æ—¶ triplet_loss = cos_sim_ik - cos_sim_ij + margin
+        # æ‰€ä»¥triplet_loss_ijk = pos_flag_ij * cos_sim_minus_ijk + margin
+        # æ ·æœ¬ijä¸ºè´Ÿæ ·æœ¬æ—¶ pos_flag_ij = 1 å¦åˆ™ pos_flag_ij = -1
         # pos_flag_ij shape: [batch_size, batch_size, batch_size]
         pos_flag_ij = (1 - 2 * target_label).unsqueeze(2).repeat(1, 1, batch_size)
 
-        # µÃµ½ËùÓĞijkµÄtriplet loss
+        # å¾—åˆ°æ‰€æœ‰ijkçš„triplet loss
         # triplet_loss shape: [batch_size, batch_size, batch_size]
         triplet_loss =  self.relu(cos_sim_minus * pos_flag_ij + self.triplet_margin)
 
-        # µÃµ½Ä¿±êtriplet_lossÑÚÂë¾ØÕó
+        # å¾—åˆ°ç›®æ ‡triplet_lossæ©ç çŸ©é˜µ
 
-        # Ê×ÏÈÉú³ÉÍ¬batch_sizeÏÂÍ¨ÓÃµÄÑÚÂë
+        # é¦–å…ˆç”ŸæˆåŒbatch_sizeä¸‹é€šç”¨çš„æ©ç 
         if self.batch_pair_wise_mask is None or self.batch_pair_wise_mask.shape[0] != batch_size:
-            # forÑ­»·Âß¼­Çå³ş µ«Ì«Âı batch_size=128Ê± ºÄÊ±15ÃëÒÔÉÏ
-            # ¾ØÕóÔËËãÂß¼­²»Çå µ«¿ì batch_size=128Ê± ºÄÊ±0.087Ãë
-            ## ====================== forÑ­»· Õ¹Ê¾Âß¼­ =========================
+            # forå¾ªç¯é€»è¾‘æ¸…æ¥š ä½†å¤ªæ…¢ batch_size=128æ—¶ è€—æ—¶15ç§’ä»¥ä¸Š
+            # çŸ©é˜µè¿ç®—é€»è¾‘ä¸æ¸… ä½†å¿« batch_size=128æ—¶ è€—æ—¶0.087ç§’
+            ## ====================== forå¾ªç¯ å±•ç¤ºé€»è¾‘ =========================
             #logging.info("creat batch_pair_wise_mask")
             #self.batch_pair_wise_mask = torch.zeros((batch_size, batch_size, batch_size), dtype=torch.int)
             #for anchor_ind in range(batch_size):
             #    for i_ind in range(batch_size):
-            #        # tripletÈıÑù±¾ĞèÒª¸÷²»ÏàÍ¬
+            #        # tripletä¸‰æ ·æœ¬éœ€è¦å„ä¸ç›¸åŒ
             #        if i_ind == anchor_ind:
             #            continue
             #        for j_ind in range(i_ind + 1, batch_size):
-            #            # tripletÈıÑù±¾ĞèÒª¸÷²»ÏàÍ¬
+            #            # tripletä¸‰æ ·æœ¬éœ€è¦å„ä¸ç›¸åŒ
             #            if j_ind == anchor_ind:
             #                continue
-            #            # self.batch_pair_wise_mask[i][j][k]Îª1£¨¼´²»ÑÚµô£©ĞèÒªÂú×ãÏÂÃæÁ½¸öÌõ¼ş£º
-            #            # 1. i,j,k»¥²»ÏàÍ¬£º
-            #            #     a. i=j£¨»òi=k£©Ê±£¬ij£¨ik£©±íÊ¾×ÔÉíÓë×ÔÉíµÄÏàËÆ¶È£¬Ò»¶¨ÎªÒ»£¬ÓÃÀ´ÑµÁ·Ã»ÓĞÒâÒå
-            #            #     b. j=kÊ±£¬ijÓëikÊÇÍ¬Ò»¸öÑù±¾ÓëanchorµÄÏàËÆ¶È²î¾à£¬Ò»¶¨ÏàµÈ£¬ÓÃÀ´ÑµÁ·Ò²Ã»ÓĞÒâÒå
-            #            # 2. j < k£ºtriplet_loss[i][j][k]ºÍtriplet_loss[i][j][k]ÊÇÒ»ÑùµÄ£¬Ã»ÓĞ±ØÒªËãÁ½´Î
+            #            # self.batch_pair_wise_mask[i][j][k]ä¸º1ï¼ˆå³ä¸æ©æ‰ï¼‰éœ€è¦æ»¡è¶³ä¸‹é¢ä¸¤ä¸ªæ¡ä»¶ï¼š
+            #            # 1. i,j,käº’ä¸ç›¸åŒï¼š
+            #            #     a. i=jï¼ˆæˆ–i=kï¼‰æ—¶ï¼Œijï¼ˆikï¼‰è¡¨ç¤ºè‡ªèº«ä¸è‡ªèº«çš„ç›¸ä¼¼åº¦ï¼Œä¸€å®šä¸ºä¸€ï¼Œç”¨æ¥è®­ç»ƒæ²¡æœ‰æ„ä¹‰
+            #            #     b. j=kæ—¶ï¼Œijä¸ikæ˜¯åŒä¸€ä¸ªæ ·æœ¬ä¸anchorçš„ç›¸ä¼¼åº¦å·®è·ï¼Œä¸€å®šç›¸ç­‰ï¼Œç”¨æ¥è®­ç»ƒä¹Ÿæ²¡æœ‰æ„ä¹‰
+            #            # 2. j < kï¼štriplet_loss[i][j][k]å’Œtriplet_loss[i][j][k]æ˜¯ä¸€æ ·çš„ï¼Œæ²¡æœ‰å¿…è¦ç®—ä¸¤æ¬¡
             #            self.batch_pair_wise_mask[anchor_ind][i_ind][j_ind] = 1
             #self.batch_pair_wise_mask = self.batch_pair_wise_mask.to(labels.device)
-            ## ========================== ¾ØÕó²Ù×÷ =============================
-            # ¾ØÕóÔËËãÉú³ÉÑÚÂë¾ØÕó ½á¹ûÓëÉÏÊöforÑ­»·Ò»ÖÂ
-            # ¹¹½¨Ò»¸öshapeÎª[batch_size, batch_size]µÄÉÏÈı½ÇÈ«Ò»¾ØÕó ²»°üÀ¨¶Ô½ÇÏß
-            # ²¢À©³äµÚÒ»Î¬¶È£¬¸´ÖÆbatch_size´Î
-            # µÃshapeÎª[batch_size, batch_size, batch_size]µÄ»ù´¡¾ØÕók
+            ## ========================== çŸ©é˜µæ“ä½œ =============================
+            # çŸ©é˜µè¿ç®—ç”Ÿæˆæ©ç çŸ©é˜µ ç»“æœä¸ä¸Šè¿°forå¾ªç¯ä¸€è‡´
+            # æ„å»ºä¸€ä¸ªshapeä¸º[batch_size, batch_size]çš„ä¸Šä¸‰è§’å…¨ä¸€çŸ©é˜µ ä¸åŒ…æ‹¬å¯¹è§’çº¿
+            # å¹¶æ‰©å……ç¬¬ä¸€ç»´åº¦ï¼Œå¤åˆ¶batch_sizeæ¬¡
+            # å¾—shapeä¸º[batch_size, batch_size, batch_size]çš„åŸºç¡€çŸ©é˜µk
             kernel = torch.triu(torch.ones((batch_size, batch_size), device=labels.device), diagonal=1)\
                     .unsqueeze(0).repeat(batch_size, 1, 1)
             logging.debug("kernel: {}".format(kernel))
 
-            # ÔÚ»ù´¡¾ØÕóÉÏÔÙÖÃ0 ¶ÔÓÚkernel[i]¾ØÕó£¬ÆäµÚiĞĞºÍµÚiÁĞ¶¼Ó¦¸ÃÎª0
+            # åœ¨åŸºç¡€çŸ©é˜µä¸Šå†ç½®0 å¯¹äºkernel[i]çŸ©é˜µï¼Œå…¶ç¬¬iè¡Œå’Œç¬¬iåˆ—éƒ½åº”è¯¥ä¸º0
 
-            # Îª´ËÉú³ÉÒ»¸ö[batch_size, batch_size]µÄ¶Ô½Ç¾ØÕó À©³äµÚÒ»Î¬¶È ¸´ÖÆbatch_size´Î
-            # µÃshapeÎª[batch_size, batch_size, batch_size]µÄ¹ıÂË¾ØÕóf
-            # È»ºó¶ÔÓÚiÊôÓÚ[0, batch_size-1] ÖÃf[i][i][i]=0 ÓÃÓÚ¶ÔÊµÏÖ¶Ôkernel[i]¾ØÕó£¬ÆäµÚiĞĞºÍµÚiÁĞ¶¼ÖÃ0
+            # ä¸ºæ­¤ç”Ÿæˆä¸€ä¸ª[batch_size, batch_size]çš„å¯¹è§’çŸ©é˜µ æ‰©å……ç¬¬ä¸€ç»´åº¦ å¤åˆ¶batch_sizeæ¬¡
+            # å¾—shapeä¸º[batch_size, batch_size, batch_size]çš„è¿‡æ»¤çŸ©é˜µf
+            # ç„¶åå¯¹äºiå±äº[0, batch_size-1] ç½®f[i][i][i]=0 ç”¨äºå¯¹å®ç°å¯¹kernel[i]çŸ©é˜µï¼Œå…¶ç¬¬iè¡Œå’Œç¬¬iåˆ—éƒ½ç½®0
             filter_matrix = torch.eye(batch_size, device=labels.device).unsqueeze(0).repeat(batch_size, 1, 1)
             for ind in range(batch_size):
                 filter_matrix[ind][ind][ind] = 0
             logging.debug("filter_matrix: {}".format(filter_matrix))
 
-            # matmul(f,k)¿ÉÒÔ½«kµÄµÚi¸ö¾ØÕóµÄµÚiĞĞÈ«ÖÃ0
-            # matmul(k,f)¿ÉÒÔ½«kµÄµÚi¸ö¾ØÕóµÄµÚiÁĞÈ«ÖÃ0
-            # ×îÖÕµÃµ½Ä¿±ê¾ØÕó
+            # matmul(f,k)å¯ä»¥å°†kçš„ç¬¬iä¸ªçŸ©é˜µçš„ç¬¬iè¡Œå…¨ç½®0
+            # matmul(k,f)å¯ä»¥å°†kçš„ç¬¬iä¸ªçŸ©é˜µçš„ç¬¬iåˆ—å…¨ç½®0
+            # æœ€ç»ˆå¾—åˆ°ç›®æ ‡çŸ©é˜µ
             self.batch_pair_wise_mask = torch.matmul(torch.matmul(filter_matrix, kernel), filter_matrix)
             logging.debug("batch_pair_wise_mask: {}".format(self.batch_pair_wise_mask))
 
-        # Ö»±£ÁôÒ»ÕıÒ»¸ºÑù±¾µÄloss
-        # Í¨ÓÃµÄpairwise_mask * Ñù±¾±êÇ©Ïà·´µÄpair
+        # åªä¿ç•™ä¸€æ­£ä¸€è´Ÿæ ·æœ¬çš„loss
+        # é€šç”¨çš„pairwise_mask * æ ·æœ¬æ ‡ç­¾ç›¸åçš„pair
         target_mask = self.batch_pair_wise_mask * (target_label.unsqueeze(2) != target_label.unsqueeze(1))
         logging.debug("target_mask shape: {}".format(target_mask.shape))
         logging.debug("target_mask: {}".format(target_mask))
 
-        # Ö»±£ÁôÄ¿±êtriplet_loss
+        # åªä¿ç•™ç›®æ ‡triplet_loss
         triplet_loss *= target_mask
         logging.debug("triplet_loss: {}".format(triplet_loss))
 
-        # Í³¼Æ´æÔÚtriplet_lossµÄÊıÄ¿
+        # ç»Ÿè®¡å­˜åœ¨triplet_lossçš„æ•°ç›®
         triplet_loss_active_num = (triplet_loss > 0).sum()
         logging.debug("triplet_loss_active_num: {}".format(triplet_loss_active_num))
         logging.debug("target_mask: {}".format(target_mask.sum()))
 
-        # Í³¼ÆpairwiseµÄloss
+        # ç»Ÿè®¡pairwiseçš„loss
         mean_loss = triplet_loss.sum() / target_mask.sum() #triplet_loss_active_num
         logging.debug("triplet_loss sum: {}".format(triplet_loss.sum()))
         logging.debug("target sum: {}".format(target_mask.sum()))
@@ -1098,58 +1111,58 @@ class BertForSeqSim(BertPreTrainedModel):
     def compute_point_wise_loss(self, cls_vecs, labels):
         logging.debug("cls_vecs: {}".format(cls_vecs))
         logging.debug("labels: {}".format(labels))
-        # ¹¹½¨ÏàËÆ¶ÈµÄÄ¿±ê¾ØÕó label_idÒ»ÖÂµÄÔòÏàËÆ
+        # æ„å»ºç›¸ä¼¼åº¦çš„ç›®æ ‡çŸ©é˜µ label_idä¸€è‡´çš„åˆ™ç›¸ä¼¼
         batch_size = labels.shape[0]
         logging.debug("batch size: {}".format(batch_size))
         labels = labels.unsqueeze(dim=0)
         logging.debug("labels shape: {}".format(labels.shape))
         logging.debug("labels: {}".format(labels))
-        # Ä¿±êÆ¥Åä¾ØÕó
+        # ç›®æ ‡åŒ¹é…çŸ©é˜µ
         # target_label shape: [batch_size, batch_size]
         target_label = (labels.t() == labels) * 1
         logging.debug("target_label shape: {}".format(target_label.shape))
         logging.debug("target_label: {}".format(target_label))
 
-        # ¼ÆËãlossÊÇºöÂÔ¶Ô½ÇÏß
-        # Æ¥ÅäÄ¿±êÑÚÂë¾ØÕó
+        # è®¡ç®—lossæ˜¯å¿½ç•¥å¯¹è§’çº¿
+        # åŒ¹é…ç›®æ ‡æ©ç çŸ©é˜µ
         target_mask = 1 - torch.eye(target_label.shape[0], device=labels.device)
 
         if self.pos_neg_weight:
-            # ¼ÆËãÕı¸º±ÈÀı
+            # è®¡ç®—æ­£è´Ÿæ¯”ä¾‹
             pos_label_num = torch.sum(target_label)
             logging.debug("pos_label_num: {}".format(pos_label_num))
             neg_label_num = batch_size ** 2 - batch_size - pos_label_num
             logging.debug("neg_label_num: {}".format(neg_label_num))
             neg_pos_ratio = torch.true_divide(neg_label_num, pos_label_num)
             logging.debug("neg_pos_ratio: {}".format(neg_pos_ratio))
-            # ½áºÏÕı¸ºÑù±¾±ÈÀı¸ø¸÷Ñù±¾ËğÊ§È¨ÖØ
-            # ¹¹ÔìÆ¥Åä¾ØÕó¸÷´¦È¨ÖØ
-            # ²»Æ¥Åä´¦È¨ÖØÎª1 Æ¥Åä´¦È¨ÖØ=negÊı/posÊı
-            # ÒÔ´ËÆ½ºâÕı¸ºÑù±¾Êı
-            # Æ½ºâÕı¸ºÑù±¾¿É¼ÓËÙÄ£ĞÍÑµÁ·
+            # ç»“åˆæ­£è´Ÿæ ·æœ¬æ¯”ä¾‹ç»™å„æ ·æœ¬æŸå¤±æƒé‡
+            # æ„é€ åŒ¹é…çŸ©é˜µå„å¤„æƒé‡
+            # ä¸åŒ¹é…å¤„æƒé‡ä¸º1 åŒ¹é…å¤„æƒé‡=negæ•°/posæ•°
+            # ä»¥æ­¤å¹³è¡¡æ­£è´Ÿæ ·æœ¬æ•°
+            # å¹³è¡¡æ­£è´Ÿæ ·æœ¬å¯åŠ é€Ÿæ¨¡å‹è®­ç»ƒ
             target_weight = (target_label * neg_pos_ratio) + (1 - target_label)
 
             target_weight *= target_mask
         else:
-            # ¸÷Ñù±¾ËğÊ§È¨ÖØÒ»ÖÂ
+            # å„æ ·æœ¬æŸå¤±æƒé‡ä¸€è‡´
             target_weight = target_mask
 
-        # ¼ÆËã¸Ãbatch¸÷ÏàËÆ¶È
-        # ¹éÒ»»¯¾äÏòÁ¿
+        # è®¡ç®—è¯¥batchå„ç›¸ä¼¼åº¦
+        # å½’ä¸€åŒ–å¥å‘é‡
         cls_vecs = nn.functional.normalize(cls_vecs, dim=1)
-        # ¼ÆËãÏàËÆ¶È
+        # è®¡ç®—ç›¸ä¼¼åº¦
         cls_vecs = torch.mm(cls_vecs, cls_vecs.t())
         logging.debug("cls_vecs shape: {}".format(cls_vecs.shape))
         logging.debug("cls_vecs: {}".format(cls_vecs))
 
 
-        # ¼ÆËãpointwiseµÄloss
-        # ¼ÆËãÓëÄ¿±ê¾ØÕóµÄ²î¾à
-        # TODO hard negative Ã¿¸öÑù±¾Ö»¼ÆËã×îÄÑµÄÄÇÒ»¸öµÄloss
+        # è®¡ç®—pointwiseçš„loss
+        # è®¡ç®—ä¸ç›®æ ‡çŸ©é˜µçš„å·®è·
+        # TODO hard negative æ¯ä¸ªæ ·æœ¬åªè®¡ç®—æœ€éš¾çš„é‚£ä¸€ä¸ªçš„loss
         dis_vecs = (target_label - cls_vecs).pow(2)
 
-        # ÒòÎªsqrt(x)Çóµ¼Ê±£¬xµÄ¶¨ÒåÓòÎª(0, +inf) µ±xÎª0Ê± sqrtÎŞµ¼Êı
-        # ¼Ó¸ö¼«Ğ¡Öµ ·ÀÖ¹sqrtµÄ²ÎÊıÖµÎª0 µ¼ÖÂ·´Ïò´«²¥Ê±³ö´í
+        # å› ä¸ºsqrt(x)æ±‚å¯¼æ—¶ï¼Œxçš„å®šä¹‰åŸŸä¸º(0, +inf) å½“xä¸º0æ—¶ sqrtæ— å¯¼æ•°
+        # åŠ ä¸ªæå°å€¼ é˜²æ­¢sqrtçš„å‚æ•°å€¼ä¸º0 å¯¼è‡´åå‘ä¼ æ’­æ—¶å‡ºé”™
         sim_loss = torch.sqrt((dis_vecs * target_weight).sum() / target_mask.sum() + 1e-8)
         logging.debug("pointwise sim_loss: {}".format(sim_loss))
         return sim_loss

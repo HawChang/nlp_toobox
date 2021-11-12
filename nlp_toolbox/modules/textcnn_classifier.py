@@ -86,7 +86,7 @@ class TextCNNClassifier(nn.Module):
 
         return loss
 
-    def forward(self, input_ids, *args, labels=None, **kwargs):
+    def forward(self, input_ids, *args, labels=None, only_loss=False, **kwargs):
         """«∞œÚ‘§≤‚
         """
         #print("\n".join(map(lambda ids: "/ ".join([id_2_token[x] for x in ids]), inputs.numpy())))
@@ -128,6 +128,8 @@ class TextCNNClassifier(nn.Module):
         #loss = self.ce_loss(logits, labels)
 
         #res_dict["loss"] = loss
+        if only_loss:
+            res_dict = {"loss": res_dict["loss"]}
 
         return res_dict
 

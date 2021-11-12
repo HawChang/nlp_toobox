@@ -14,6 +14,15 @@ LOG_DIR="./log/"
 LOG_FILE="run.log"
 
 
+if [ ! -d ${LOG_DIR} ]; then
+    mkdir ${LOG_DIR}
+fi
+
+if [ ! -d "output" ]; then
+    mkdir "output"
+fi
+
+
 function WriteLog()
 {
     local msg_date=`date +%Y-%m-%d" "%H:%M:%S`
@@ -145,7 +154,10 @@ if [ ${GPU_NUM} -gt 1 ]; then
         src/run_with_json.py \
             --param_path ${CONFIG_PATH}
 else
+    CUDA_VISIBLE_DEVICES=${GPU_VISIBLE} \
     python src/run_with_json.py \
         --param_path ${CONFIG_PATH}
 fi
 
+# sh bin/run.sh -g 4,5,6,7 -c examples/gru_classification.json
+# sh bin/run.sh -g 7 -c examples/gru_classification.json

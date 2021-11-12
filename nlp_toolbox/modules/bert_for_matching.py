@@ -12,8 +12,9 @@ import torch
 
 from nlp_toolbox.modules.bert import BertPreTrainedModel, BertModel
 
+
 class BertForMatching(BertPreTrainedModel):
-    """
+    """用于匹配的bert
     """
     def __init__(self, config):
         super(BertForMatching, self).__init__(config)
@@ -37,7 +38,7 @@ class BertForMatching(BertPreTrainedModel):
         #logging.info("origin diff: {}".format(pos_sim - neg_sim + self.margin))
         return self.relu(neg_sim - pos_sim + self.margin)
 
-    def forward(self, input_ids, second_input_ids=None, third_input_ids=None, labels=None, **kwargs):
+    def forward(self, input_ids, second_input_ids=None, third_input_ids=None, labels=None, only_loss=False, **kwargs):
         """前向预测
         """
         # token_type_ids，position_ids 都在bert里自动造
@@ -83,5 +84,8 @@ class BertForMatching(BertPreTrainedModel):
                 assert third_input_ids is None, "either third_input_ids or labels must be None"
                 pointwise_loss = self.compute_pointwise_loss(second_sim, labels)
                 res_dict["loss"] = pointwise_loss
+        
+        if only_loss:
+            res_dict = {"loss": res_dict["loss"]}
 
         return res_dict

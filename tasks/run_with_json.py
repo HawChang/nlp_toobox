@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
 File  :   test_bert_classifier.py
@@ -64,14 +64,15 @@ def model_from_params(params_dict, dataloader_bundle):
     for cur_param, cur_value in build_config.items():
         if cur_value != "auto":
             continue
-        if cur_param in ["vocab_size", "num_class", "keep_tokens", "label_encoder"]:
-            build_config[cur_param] = dataloader_bundle.tool_dict[cur_param]
+        #if cur_param in ["vocab_size", "num_class", "keep_tokens", "label_encoder", "tokenizer"]:
+        build_config[cur_param] = dataloader_bundle.tool_dict[cur_param]
 
     model = model_class(
             **build_config,
             )
 
     return model
+
 
 def run_from_params(params_dict, model, dataloader_bundle):
     """
@@ -80,9 +81,15 @@ def run_from_params(params_dict, model, dataloader_bundle):
             "train",
             "eval",
             "infer",
+            "generate",
             ]
 
     for cur_phase in phase_list:
+        # 每个阶段 都统一开始 
+        # 不然train阶段 主进程还在save模型 别的进程就已经到下一个阶段 尝试load模型了
+        if RegisterSet.IS_DISTRIBUTED:
+            torch.distributed.barrier()
+
         if cur_phase not in params_dict:
             continue
 
@@ -109,21 +116,14 @@ def run_from_params(params_dict, model, dataloader_bundle):
             model.load_model(params_dict["best_model_save_path"])
             run_config = {DataLoaderType.INFER_DATALOADER: dataloader_bundle[DataLoaderType.INFER_DATALOADER].dataloader}
             run_config.update(params_dict[cur_phase])
+        elif cur_phase == "generate":
+            model.load_model(params_dict["best_model_save_path"])
+            run_config = {DataLoaderType.INFER_DATALOADER: dataloader_bundle[DataLoaderType.INFER_DATALOADER].dataloader}
+            run_config.update(params_dict[cur_phase])
 
         logging.info("run config: {}".format(run_config))
         cur_func = getattr(model, cur_phase)
         cur_func(**run_config)
-
-        #if cur_phase == "infer":
-        #    logging.info("func_res shape: {}".format(func_res))
-        #    with codecs.open(params_dict[cur_phase]["infer_res_path"], "w", "utf-8") as wf:
-        #        for line in func_res:
-        #            wf.write(line + "\n")
-
-        # 每个阶段 各进程都结束 到这里后 再到下一个阶段
-        # 不然train阶段 主进程还在save模型 别的进程就已经到下一个阶段 尝试load模型了
-        if RegisterSet.IS_DISTRIBUTED:
-            torch.distributed.barrier()
 
 
 def run_trainer(param_dict):
@@ -143,7 +143,6 @@ def run_trainer(param_dict):
     run_from_params(run_params_dict, model, dataloader_bundle)
 
     logging.info("end of run train and eval .....")
-
 
 
 if __name__ == "__main__":

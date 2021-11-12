@@ -85,7 +85,7 @@ class GRUClassifier(nn.Module):
 
         return loss
 
-    def forward(self, input_ids, *args, labels=None, **kwargs):
+    def forward(self, input_ids, *args, labels=None, only_loss=False, **kwargs):
         """«∞œÚ‘§≤‚
         """
         self.gru.flatten_parameters()
@@ -130,6 +130,8 @@ class GRUClassifier(nn.Module):
         ##loss = L.cross_entropy(logits, labels)
         ##loss = L.reduce_mean(loss)
         #res_dict["loss"] = loss
+        if only_loss:
+            res_dict = {"loss": res_dict["loss"]}
         return res_dict
 
 

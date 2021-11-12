@@ -12,7 +12,6 @@ import torch
 from nlp_toolbox.models.base_model import ClassificationModel, model_distributed
 from nlp_toolbox.modules.bert import BertForClassification
 from nlp_toolbox.utils.register import RegisterSet
-from nlp_toolbox.utils.manual_config import InstanceName
 
 
 @RegisterSet.models.register
