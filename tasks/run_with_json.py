@@ -15,7 +15,7 @@ import torch
 
 
 _cur_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append("%s/../../../" % _cur_dir)
+sys.path.append("%s/../../" % _cur_dir)
 
 from nlp_toolbox.utils.logger import init_log
 init_log()

@@ -105,8 +105,8 @@
     }
   },
   "run_config": {
-    "model_save_path": "./output/bert_test",
-    "best_model_save_path": "./output/bert_test_best",
+    "model_save_path": "./output/bert_poem",
+    "best_model_save_path": "./output/bert_poem_best",
     "train": {
       "enable": false, 
       "epochs": 20,

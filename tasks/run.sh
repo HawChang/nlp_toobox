@@ -151,11 +151,11 @@ if [ ${GPU_NUM} -gt 1 ]; then
         --nproc_per_node=${GPU_NUM} \
         --master_addr ${ADDR} \
         --master_port ${PORT} \
-        src/run_with_json.py \
+        run_with_json.py \
             --param_path ${CONFIG_PATH}
 else
     CUDA_VISIBLE_DEVICES=${GPU_VISIBLE} \
-    python src/run_with_json.py \
+    python run_with_json.py \
         --param_path ${CONFIG_PATH}
 fi
 

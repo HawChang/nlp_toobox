@@ -11,7 +11,7 @@
       "label_encoder,num_class": {
         "type": "tokenizers",
         "class": "LabelEncoder",
-        "vocab_path": "../dataset/classification_data/toutiao_news/class_id.txt"
+        "vocab_path": "../dataset/text_classification/toutiao_news/class_id.txt"
       }
     },
     "loaders": {
@@ -39,7 +39,7 @@
           }
         ],
         "config": {
-          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_train_shrink.txt",
+          "data_dir": "../dataset/text_classification/toutiao_news/toutiao_news_train_shrink.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
@@ -71,7 +71,7 @@
           }
         ],
         "config": {
-          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_test.txt",
+          "data_dir": "../dataset/text_classification/toutiao_news/toutiao_news_test.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
@@ -94,7 +94,7 @@
           }
         ],
         "config": {
-          "data_dir": "../dataset/classification_data/toutiao_news/toutiao_news_test.txt",
+          "data_dir": "../dataset/text_classification/toutiao_news/toutiao_news_test.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
