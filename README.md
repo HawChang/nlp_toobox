@@ -20,10 +20,25 @@ sh run.sh -g 4 -c examples/poem_bert_generation.json
 
 #### 效果示例
 
+示例1：
 
+![示例1](/imgs/poem1.png)
 
+示例2：
 
+![示例2](/imgs/poem2.png)
 
+示例3：
+
+![示例3](/imgs/poem3.png)
+
+示例4：
+
+![示例4](/imgs/poem4.png)
+
+示例5：
+
+![示例5](/imgs/poem5.png)
 
 ### TODO
 - [ ] 优化模型配置逻辑
