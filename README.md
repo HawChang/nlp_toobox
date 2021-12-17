@@ -46,3 +46,5 @@ sh run.sh -g 4 -c examples/poem_bert_generation.json
 ### TODO
 - [ ] 优化模型配置逻辑
 - [ ] 优化库文件结构
+- [ ] 当前beamsearch是通用的beamsearch，可定制古诗的beamsearch增加效果
+- [ ] 当前beamsearch出现部分少字古诗，score为1，需要debug一下
