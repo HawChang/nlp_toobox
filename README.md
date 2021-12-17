@@ -11,6 +11,9 @@
 
 ### 任务示例-生成诗词
 
+已训练模型（放到`tasks/text_generation/output`下即可）
+链接: https://pan.baidu.com/s/1f6jBhzLwZfJSTwOCM1K4_w 提取码: 69f0
+
 #### 执行语句
 
 ```

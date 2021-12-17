@@ -29,7 +29,7 @@
           }
         ],
         "config": {
-          "data_dir": "../dataset/poetry_dataset/poetry_data.txt",
+          "data_dir": "../dataset/poetry_dataset/poetry_data_switch.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
@@ -56,7 +56,7 @@
           }
         ],
         "config": {
-          "data_dir": "../dataset/poetry_dataset/poetry_data_1k.txt",
+          "data_dir": "../dataset/poetry_dataset/poetry_data_1k_switch.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
@@ -82,7 +82,7 @@
           }
         ],
         "config": {
-          "data_dir": "../dataset/poetry_dataset/poetry_data_1k.txt",
+          "data_dir": "../dataset/poetry_dataset/poetry_data_1k_switch.txt",
           "encoding": "utf-8",
           "header": true,
           "sampler": null,
@@ -105,10 +105,10 @@
     }
   },
   "run_config": {
-    "model_save_path": "./output/bert_poem",
-    "best_model_save_path": "./output/bert_poem_best",
+    "model_save_path": "./output/bert_poem_switch",
+    "best_model_save_path": "./output/bert_poem_switch_best",
     "train": {
-      "enable": false, 
+      "enable": false,
       "epochs": 20,
       "print_step": 100,
       "load_best_model": true,
@@ -130,7 +130,7 @@
       "beam_size": 3,
       "beam_group": 5,
       "max_gen_length": 100,
-      "generate_res_path": "./output/bert_poem_generate_res"
+      "generate_res_path": "./output/bert_poem_switch_generate_res"
     }
   }
 }

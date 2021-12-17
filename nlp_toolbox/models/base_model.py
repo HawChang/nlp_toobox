@@ -909,7 +909,7 @@ class Seq2seqModel(BaseModel):
                 max_gen_length=max_gen_length,
                 **kwargs,
                 )
-            
+
             cur_input = self.tokenizer.decode(cur_infer_dict["input_ids"].detach().cpu().numpy()[0])
             logging.info("input: {}".format(cur_input))
 
@@ -920,8 +920,19 @@ class Seq2seqModel(BaseModel):
                 cur_text = self.tokenizer.decode(cur_output_ids.detach().cpu().numpy())
                 logging.info("gen_text: {}, score: {}".format(cur_text, cur_score))
                 cur_gen_text_list.append((cur_text, cur_score.tolist()))
-            
-            gen_text_list.append(cur_gen_text_list)
+
+            gen_text_list.append((cur_input, cur_gen_text_list))
+
+        if generate_res_path is not None:
+            with open(generate_res_path, mode="w", encoding="utf-8") as wf:
+                wf.write("\t".join(["title", "poem", "score"]) + "\n")
+                for cur_title, cur_res_list in gen_text_list:
+                    for cur_res, cur_score in cur_res_list:
+                        wf.write("\t".join([
+                            cur_title,
+                            cur_res,
+                            str(cur_score),
+                            ]) + "\n")
 
         return gen_text_list
 
