@@ -1,14 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: gb18030 -*-
-########################################################################
-# 
-# Copyright (c) 2019 Baidu.com, Inc. All Rights Reserved
-# 
-########################################################################
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
  
 """
 File: logger.py
-Author: zhanghao55(zhanghao55@baidu.com)
+Author: zhanghao(changhaw@126.com)
 Date: 2019/09/19 20:49:02
 """
 

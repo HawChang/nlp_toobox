@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 File  :   basic_text_input.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/06/25 11:26:38
 Desc  :   
 """

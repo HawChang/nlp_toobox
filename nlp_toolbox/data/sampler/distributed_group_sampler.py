@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   distributed_group_sampler.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/01/16 17:12:45
 Desc  :   
 """
@@ -16,9 +16,9 @@ import torch.distributed as dist
 
 
 class DistributedGroupSampler(Sampler):
-    """°´×éËæ»úµÄ·Ö²¼Ê½sampler£¬Ëæ»úµÄÊ±ºò£¬°´Ë³ĞòºÍÖ¸¶¨×éµÄ´óĞ¡½«Êı¾İ·ÖÎªÈô¸É×é
-       ×é¼äËæ»ú´òÂÒ
-       ×¢Òâ: batch_sizeÓ¦¸ÃÊÇgroup_sizeµÄÕûÊı±¶
+    """æŒ‰ç»„éšæœºçš„åˆ†å¸ƒå¼samplerï¼Œéšæœºçš„æ—¶å€™ï¼ŒæŒ‰é¡ºåºå’ŒæŒ‡å®šç»„çš„å¤§å°å°†æ•°æ®åˆ†ä¸ºè‹¥å¹²ç»„
+       ç»„é—´éšæœºæ‰“ä¹±
+       æ³¨æ„: batch_sizeåº”è¯¥æ˜¯group_sizeçš„æ•´æ•°å€
     """
 
     def __init__(self, dataset, group_size=2, num_replicas=None, rank=None, shuffle=True, seed=0):
@@ -31,31 +31,32 @@ class DistributedGroupSampler(Sampler):
                 raise RuntimeError("Requires distributed package to be available")
             rank = dist.get_rank()
 
-        #  Êı¾İ¼¯´óĞ¡Ò»¶¨±»×é´óĞ¡Õû³ı
+        #  æ•°æ®é›†å¤§å°ä¸€å®šè¢«ç»„å¤§å°æ•´é™¤
         self.dataset = dataset
         self.group_size = group_size
 
         dataset_size = len(self.dataset)
-        assert dataset_size % group_size == 0, "dataset_size({}) is not devisible by group_size({})".format(dataset_size, group_size)
-        # µÃµ½×éÊı
+        assert dataset_size % group_size == 0, \
+            "dataset_size({}) is not devisible by group_size({})".format(dataset_size, group_size)
+        # å¾—åˆ°ç»„æ•°
         self.group_num_total = int(dataset_size / group_size)
         logging.debug("group_num_total: {}".format(self.group_num_total))
 
-        # ½ø³ÌÊı
+        # è¿›ç¨‹æ•°
         self.num_replicas = num_replicas
-        # µ±Ç°½ø³ÌID
+        # å½“å‰è¿›ç¨‹ID
         self.rank = rank
-        # µ±Ç°epoch
+        # å½“å‰epoch
         self.epoch = 0
-        # group_num_each: Ã¿¸öprocess_»á·ÖÅäµ½µÄ×éÊı
+        # group_num_each: æ¯ä¸ªprocess_ä¼šåˆ†é…åˆ°çš„ç»„æ•°
         group_num_each = int(math.ceil(self.group_num_total * 1.0 / num_replicas))
-        # num_samples: Ò»¸öprocessËù·ÖÅäµ½µÄÊı¾İÁ¿ ¼´×éÊı*×é´óĞ¡
+        # num_samples: ä¸€ä¸ªprocessæ‰€åˆ†é…åˆ°çš„æ•°æ®é‡ å³ç»„æ•°*ç»„å¤§å°
         self.num_samples = group_num_each * group_size
 
-        # pad_group_size ÎªÍêÈ«·ÖÅäÕûÊı¸÷batchµÄÊı¾İ¶øĞèÒª²¹Æëµ½µÄ×éÊı
+        # pad_group_size ä¸ºå®Œå…¨åˆ†é…æ•´æ•°å„batchçš„æ•°æ®è€Œéœ€è¦è¡¥é½åˆ°çš„ç»„æ•°
         self.pad_group_size = group_num_each * self.num_replicas
         logging.debug("pad_group_size: {}".format(self.pad_group_size))
-        # total_size ÎªÍêÈ«·ÖÅäÕûÊı¸÷batchµÄÊı¾İ¶øĞèÒª²¹Æëµ½µÄÊı¾İ¼¯Á¿
+        # total_size ä¸ºå®Œå…¨åˆ†é…æ•´æ•°å„batchçš„æ•°æ®è€Œéœ€è¦è¡¥é½åˆ°çš„æ•°æ®é›†é‡
         #self.total_size = self.num_samples * self.num_replicas
         self.shuffle = shuffle
         self.seed = seed
@@ -74,7 +75,7 @@ class DistributedGroupSampler(Sampler):
         group_idxs += group_idxs[:(self.pad_group_size - len(group_idxs))]
         assert len(group_idxs) == self.pad_group_size
 
-        # µÃµ½µ±Ç°rank²¿·ÖµÄÊı¾İ
+        # å¾—åˆ°å½“å‰rankéƒ¨åˆ†çš„æ•°æ®
         group_idxs = group_idxs[self.rank:self.pad_group_size:self.num_replicas]
         logging.debug("group_idxs: {}".format(group_idxs))
 

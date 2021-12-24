@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   textcnn_matching.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/07/13 17:53:03
 Desc  :   
 """
@@ -17,7 +17,7 @@ from nlp_toolbox.modules.losses.label_smoothing_cross_entropy_loss import LabelS
 
 
 class TextCNNMatching(nn.Module):
-    """textcnn匹配模型
+    """textcnn鍖归厤妯″瀷
     """
     def __init__(self,
             vocab_size,
@@ -67,19 +67,19 @@ class TextCNNMatching(nn.Module):
 
     def compute_pointwise_loss(self, tar_sim, labels):
         """
-        计算loss
+        璁＄畻loss
         """
         return torch.sqrt((tar_sim - labels).pow(2).mean())
 
     def compute_triplet_loss(self, pos_sim, neg_sim):
         """
-        计算loss
+        璁＄畻loss
         """
         #logging.info("origin diff: {}".format(pos_sim - neg_sim + self.margin))
         return self.relu(neg_sim - pos_sim + self.margin)
 
     def forward(self, input_ids, second_input_ids=None, third_input_ids=None, labels=None, only_loss=False, **kwargs):
-        """前向预测
+        """鍓嶅悜棰勬祴
         """
         #print("\n".join(map(lambda ids: "/ ".join([id_2_token[x] for x in ids]), inputs.numpy())))
         # inputs shape = [batch_size, seq_len]
@@ -102,7 +102,7 @@ class TextCNNMatching(nn.Module):
             second_input_vec = self.textcnn(second_input_emb)
             res_dict["second_sent_vec"] = second_input_vec
 
-            # 计算两输入间的相似度
+            # 璁＄畻涓よ緭鍏ラ棿鐨勭浉浼煎害
             # second_sim shape = [batch_size]
             second_sim = self.cosine_sim(input_vec, second_input_vec)
             res_dict["second_sim"] = second_sim
@@ -114,7 +114,7 @@ class TextCNNMatching(nn.Module):
                 third_input_vec = self.textcnn(third_input_emb)
                 res_dict["third_sent_vec"] = third_input_vec
 
-                # 计算两输入间的相似度
+                # 璁＄畻涓よ緭鍏ラ棿鐨勭浉浼煎害
                 # third_sim shape = [batch_size]
                 third_sim = self.cosine_sim(input_vec, third_input_vec)
                 res_dict["third_sim"] = third_sim

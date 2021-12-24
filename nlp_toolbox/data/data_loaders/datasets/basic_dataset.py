@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 File  :   basic_dataset.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/06/25 16:04:58
 Desc  :   
 """

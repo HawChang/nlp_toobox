@@ -1,5 +1,11 @@
-# -*- coding: utf-8 -*
-"""maintain a dictionary of parameters"""
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+File  :   params.py
+Author:   zhanghao(changhaw@126.com)
+Date  :   21/06/24 11:03:47
+Desc  :   
+"""
 
 import json
 import logging

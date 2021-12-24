@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding:gb18030 -*-
+# -*- coding: utf-8 -*-
 """
 File  :   sampler.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/01/22 15:32:26
 Desc  :   
 """
@@ -13,67 +13,67 @@ import heapq
 
 
 class Sampler(object):
-    """Í¨ÓÃ³éÑùÀà ĞîË®³Ø³éÑù Ö§³Ö¼ÓÈ¨³éÑù È¥ÖØ³éÑù
+    """é€šç”¨æŠ½æ ·ç±» è“„æ°´æ± æŠ½æ · æ”¯æŒåŠ æƒæŠ½æ · å»é‡æŠ½æ ·
     """
     def __init__(self, sample_num, uniq=False):
-        """³õÊ¼»¯ Ö¸¶¨³éÑù¸öÊı
+        """åˆå§‹åŒ– æŒ‡å®šæŠ½æ ·ä¸ªæ•°
         Args:
-            sample_num : Ö¸¶¨³éÑù¸öÊı
-            uniq       : TrueÔò³éÑù½á¹ûÈ¥ÖØ
+            sample_num : æŒ‡å®šæŠ½æ ·ä¸ªæ•°
+            uniq       : Trueåˆ™æŠ½æ ·ç»“æœå»é‡
         Caution:
-            µ±uniqÎªTrueÊ±£¬Òª±£Ö¤²åÈëµÄkey¿Éhash
+            å½“uniqä¸ºTrueæ—¶ï¼Œè¦ä¿è¯æ’å…¥çš„keyå¯hash
         """
         assert isinstance(sample_num, int), "sample_num must be integer."
         self._sample_num = sample_num
         self._sample_heap = list()
         self._uniq = uniq
         if self._uniq:
-            # ¼ÇÂ¼ÔÚ³éÑùÊı¾İ¼¯ÖĞµÄobjµÄkey¼¯ºÏ
+            # è®°å½•åœ¨æŠ½æ ·æ•°æ®é›†ä¸­çš„objçš„keyé›†åˆ
             self._uniq_key_set = set()
 
     def put(self, obj, weight=1.0, key=None):
         """
         Args:
-            obj : ³éÑùµÄÔªËØ
-            weight: µ±Ç°ÔªËØ³éÑùÈ¨ÖØ
-            key : È¥ÖØÊ±ÒÀÀµµÄ¼ü£¬Èç¹ûÎªNone£¬ÔòobjÎª¼ü
+            obj : æŠ½æ ·çš„å…ƒç´ 
+            weight: å½“å‰å…ƒç´ æŠ½æ ·æƒé‡
+            key : å»é‡æ—¶ä¾èµ–çš„é”®ï¼Œå¦‚æœä¸ºNoneï¼Œåˆ™objä¸ºé”®
         Return:
-            True±íÊ¾²åÈë³É¹¦£¬False±íÊ¾²åÈëÊ§°Ü(µ±ÒªÈ¥ÖØ£¬ÇÒÊı¾İÒÑÔÚ³éÑù½á¹ûÖĞÊ±²åÈëÊ§°Ü)
+            Trueè¡¨ç¤ºæ’å…¥æˆåŠŸï¼ŒFalseè¡¨ç¤ºæ’å…¥å¤±è´¥(å½“è¦å»é‡ï¼Œä¸”æ•°æ®å·²åœ¨æŠ½æ ·ç»“æœä¸­æ—¶æ’å…¥å¤±è´¥)
         Caution:
-            µ±uniqÎªTrueÊ±£¬Òª±£Ö¤²åÈëµÄobj¿Éhash
+            å½“uniqä¸ºTrueæ—¶ï¼Œè¦ä¿è¯æ’å…¥çš„objå¯hash
         """
-        # Èç¹ûÒªÈ¥ÖØ ĞèÒªÈ·ÈÏÊÇ·ñÒÑÖØ¸´
+        # å¦‚æœè¦å»é‡ éœ€è¦ç¡®è®¤æ˜¯å¦å·²é‡å¤
         if self._uniq:
-            # È·¶¨¸ÃÊı¾İµÄuniq_key
+            # ç¡®å®šè¯¥æ•°æ®çš„uniq_key
             uniq_key = obj if key is None else key
 
-            # Èç¹ûÒÑ´æÔÚ Ôò²»²åÈë
+            # å¦‚æœå·²å­˜åœ¨ åˆ™ä¸æ’å…¥
             if uniq_key in self._uniq_key_set:
-                # ÇÒ¸ÃobjÔÚ_uniq_key_setÖĞÒÑ´æÔÚ Ò²²»ĞèÒª²åÈë
+                # ä¸”è¯¥objåœ¨_uniq_key_setä¸­å·²å­˜åœ¨ ä¹Ÿä¸éœ€è¦æ’å…¥
                 return False
 
             insert_element = (uniq_key, obj)
         else:
             insert_element = obj
 
-        # Îªµ±Ç°ÊıÉú³É³éÑùÈ¨ÖØ
-        # Ëæ»úÊı in [0, 1)
-        # ĞîË®³Ø¼ÓÈ¨³éÑù
-        # ²Î¿¼:¡¶Weighted Random Sampling over Data Streams¡·
+        # ä¸ºå½“å‰æ•°ç”ŸæˆæŠ½æ ·æƒé‡
+        # éšæœºæ•° in [0, 1)
+        # è“„æ°´æ± åŠ æƒæŠ½æ ·
+        # å‚è€ƒ:ã€ŠWeighted Random Sampling over Data Streamsã€‹
         # https://arxiv.org/pdf/1012.0256.pdf
         rand_R = random.uniform(0, 1)
         sample_weight = rand_R ** (1 / float(weight))
 
-        # Èç¹û³éÑùÈ¨ÖØÂú×ãÌõ¼ş ÔòÌí¼Ó
+        # å¦‚æœæŠ½æ ·æƒé‡æ»¡è¶³æ¡ä»¶ åˆ™æ·»åŠ 
         if len(self._sample_heap) < self._sample_num or \
                 sample_weight > self._sample_heap[0][0]:
             heapq.heappush(self._sample_heap, (sample_weight, insert_element))
             if self._uniq:
-                # Ìí¼ÓĞÂ²åÈëÊı¾İµÄ¼ÇÂ¼
+                # æ·»åŠ æ–°æ’å…¥æ•°æ®çš„è®°å½•
                 self._uniq_key_set.add(uniq_key)
 
-        # ³éÑùÊı¾İÁ¿´óÓÚÖ¸¶¨ÊıÊ± µ¯³ö¶àÓàÊı¾İ
-        # Èç¹ûÒªÈ¥ÖØ ÔòĞèÒª¸üĞÂÖØ¸´Êı¾İ¼ÇÂ¼
+        # æŠ½æ ·æ•°æ®é‡å¤§äºæŒ‡å®šæ•°æ—¶ å¼¹å‡ºå¤šä½™æ•°æ®
+        # å¦‚æœè¦å»é‡ åˆ™éœ€è¦æ›´æ–°é‡å¤æ•°æ®è®°å½•
         if len(self._sample_heap) > self._sample_num:
             _, replaced_element = heapq.heappop(self._sample_heap)
             if self._uniq:
@@ -83,16 +83,16 @@ class Sampler(object):
         return True
 
     def get_sample_list(self):
-        """·µ»Øµ±Ç°³éÑù½á¹û
+        """è¿”å›å½“å‰æŠ½æ ·ç»“æœ
         """
         if self._uniq:
-            # ĞèÒªÈ¥ÖØÊ± ³éÑùÔªËØÊÇ¶şÔª×é ĞèÒªµÄÖ»ÓĞµÚ¶ş¸öÔªËØ
+            # éœ€è¦å»é‡æ—¶ æŠ½æ ·å…ƒç´ æ˜¯äºŒå…ƒç»„ éœ€è¦çš„åªæœ‰ç¬¬äºŒä¸ªå…ƒç´ 
             return [x[1][1] for x in self._sample_heap]
         else:
             return [x[1] for x in self._sample_heap]
 
     def clear(self):
-        """Çå¿Õ³éÑùÁĞ±í
+        """æ¸…ç©ºæŠ½æ ·åˆ—è¡¨
         """
         self._sample_heap[:]=[]
         if self._uniq:
@@ -100,7 +100,7 @@ class Sampler(object):
 
 
 def test():
-    """²âÊÔ»ù±¾¹¦ÄÜ
+    """æµ‹è¯•åŸºæœ¬åŠŸèƒ½
     """
 
     sampler = Sampler(4)
@@ -115,7 +115,7 @@ def test():
         sampler.put(i)
     print(sampler.get_sample_list())
 
-    print("³éÑù½á¹û²»È¥ÖØ")
+    print("æŠ½æ ·ç»“æœä¸å»é‡")
     sampler = Sampler(10)
     for _ in range(10):
         sampler.clear()
@@ -123,7 +123,7 @@ def test():
             sampler.put(random.randint(0, 5))
         print(sampler.get_sample_list())
 
-    print("³éÑù½á¹ûÈ¥ÖØ")
+    print("æŠ½æ ·ç»“æœå»é‡")
     sampler = Sampler(10, True)
     for _ in range(10):
         sampler.clear()
@@ -131,7 +131,7 @@ def test():
             sampler.put(random.randint(0, 5))
         print(sampler.get_sample_list())
 
-    print("³éÑù½á¹ûÈ¥ÖØ keyÃ»ÓĞÖØ¸´")
+    print("æŠ½æ ·ç»“æœå»é‡ keyæ²¡æœ‰é‡å¤")
     sampler = Sampler(10, True)
     for _ in range(10):
         sampler.clear()
@@ -139,7 +139,7 @@ def test():
             sampler.put(random.randint(0, 5), key=i)
         print(sampler.get_sample_list())
 
-    print("³éÑù½á¹ûÈ¥ÖØ keyÖØ¸´")
+    print("æŠ½æ ·ç»“æœå»é‡ keyé‡å¤")
     sampler = Sampler(10, True)
     for _ in range(10):
         sampler.clear()
@@ -148,7 +148,7 @@ def test():
             sampler.put(cur_v, key=cur_v)
         print(sampler.get_sample_list())
 
-    print("³éÑù½á¹û²»È¥ÖØ keyÖØ¸´")
+    print("æŠ½æ ·ç»“æœä¸å»é‡ keyé‡å¤")
     sampler = Sampler(10, False)
     for _ in range(10):
         sampler.clear()
@@ -157,10 +157,10 @@ def test():
             sampler.put(cur_v, key=cur_v)
         print(sampler.get_sample_list())
 
-    print("³éÑù½á¹û²»È¥ÖØ key²»ÖØ¸´ °´È¨ÖµÈ¥ÖØ")
-    from collections import defaultdict
+    print("æŠ½æ ·ç»“æœä¸å»é‡ keyä¸é‡å¤ æŒ‰æƒå€¼å»é‡")
+    import collections
     sampler = Sampler(1, False)
-    count_dict = defaultdict(int)
+    count_dict = collections.defaultdict(int)
     weight_dict = {
             0: 0.6,
             1: 0.3,

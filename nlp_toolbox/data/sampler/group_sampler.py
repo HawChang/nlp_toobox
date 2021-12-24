@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   group_sampler.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/01/16 17:12:45
 Desc  :   
 """
@@ -15,23 +15,24 @@ from torch.utils.data import Sampler
 
 
 class GroupSampler(Sampler):
-    """°´×éËæ»úµÄ·Ö²¼Ê½sampler£¬Ëæ»úµÄÊ±ºò£¬°´Ë³ĞòºÍÖ¸¶¨×éµÄ´óĞ¡½«Êı¾İ·ÖÎªÈô¸É×é
-       ×é¼äËæ»ú´òÂÒ
-       ×¢Òâ: batch_sizeÓ¦¸ÃÊÇgroup_sizeµÄÕûÊı±¶
+    """æŒ‰ç»„éšæœºçš„åˆ†å¸ƒå¼samplerï¼Œéšæœºçš„æ—¶å€™ï¼ŒæŒ‰é¡ºåºå’ŒæŒ‡å®šç»„çš„å¤§å°å°†æ•°æ®åˆ†ä¸ºè‹¥å¹²ç»„
+       ç»„é—´éšæœºæ‰“ä¹±
+       æ³¨æ„: batch_sizeåº”è¯¥æ˜¯group_sizeçš„æ•´æ•°å€
     """
 
     def __init__(self, dataset, group_size=2, shuffle=True, seed=0):
-        #  Êı¾İ¼¯´óĞ¡Ò»¶¨±»×é´óĞ¡Õû³ı
+        #  æ•°æ®é›†å¤§å°ä¸€å®šè¢«ç»„å¤§å°æ•´é™¤
         self.dataset = dataset
         self.group_size = group_size
 
         self.num_samples =  len(self.dataset)
-        assert self.num_samples % group_size == 0, "num_samples({}) is not devisible by group_size({})".format(self.num_samples, group_size)
-        # µÃµ½×éÊı
+        assert self.num_samples % group_size == 0, \
+            "num_samples({}) is not devisible by group_size({})".format(self.num_samples, group_size)
+        # å¾—åˆ°ç»„æ•°
         self.group_num_total = int(self.num_samples / group_size)
         logging.debug("group_num_total: {}".format(self.group_num_total))
 
-        # µ±Ç°epoch
+        # å½“å‰epoch
         self.epoch = 0
         self.shuffle = shuffle
         self.seed = seed

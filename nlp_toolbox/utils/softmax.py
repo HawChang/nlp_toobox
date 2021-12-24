@@ -1,19 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: gb18030 -*-
-########################################################################
-# 
-# Copyright (c) 2019 Baidu.com, Inc. All Rights Reserved
-# 
-########################################################################
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
  
 """
 File: softmax.py
-Author: zhanghao55(zhanghao55@baidu.com)
+Author: zhanghao(changhaw@126.com)
 Date: 2019/12/11 10:29:24
 """
 import numpy as np
 
-def softmax(X, theta = 1.0, axis = None):
+def softmax(X, theta=1.0, axis=None):
     """
     Compute the softmax of each element along an axis of X.
 
@@ -67,7 +62,7 @@ if __name__ == "__main__":
 
     print("test softmax on:")
     print(X)
-    print("="*30)
+    print("=" * 30)
 
     print("softmax over rows")
     print(softmax(X, theta = 0.5, axis = 0))
@@ -80,7 +75,7 @@ if __name__ == "__main__":
 
     X = [1.1, 5.0, 2.2, 7.3]
     print("test softmax on:")
-    print("="*30)
+    print("=" * 30)
 
     print("softmax over columns")
     print(softmax(X, theta = 0.5, axis = 1))

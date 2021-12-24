@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 File  :   basic_data_loader.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/06/24 19:39:10
 Desc  :   
 """

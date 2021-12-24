@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 File  :   base_model.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   20/12/21 10:47:13
 Desc  :   
 """

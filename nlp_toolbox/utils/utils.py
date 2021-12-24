@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 File  :   utils.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   20/11/06 15:51:14
 Desc  :   
 """

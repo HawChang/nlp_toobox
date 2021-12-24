@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   textcnn.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/01/14 10:53:03
 Desc  :   
 """
@@ -17,7 +17,7 @@ from nlp_toolbox.modules.losses.label_smoothing_cross_entropy_loss import LabelS
 
 
 class TextCNNClassifier(nn.Module):
-    """textcnn·ÖÀàÄ£ĞÍ
+    """textcnnåˆ†ç±»æ¨¡å‹
     """
     def __init__(self,
             num_class,
@@ -73,7 +73,7 @@ class TextCNNClassifier(nn.Module):
 
     def compute_loss(self, softmax_pred, labels):
         """
-        ¼ÆËãloss
+        è®¡ç®—loss
         softmax_pred: (batch_size, 1)
         """
         softmax_pred = softmax_pred.view(-1, self.num_class)
@@ -87,7 +87,7 @@ class TextCNNClassifier(nn.Module):
         return loss
 
     def forward(self, input_ids, *args, labels=None, only_loss=False, **kwargs):
-        """Ç°ÏòÔ¤²â
+        """å‰å‘é¢„æµ‹
         """
         #print("\n".join(map(lambda ids: "/ ".join([id_2_token[x] for x in ids]), inputs.numpy())))
         # inputs shape = [batch_size, seq_len]
@@ -114,12 +114,12 @@ class TextCNNClassifier(nn.Module):
                 "sent_softmax": softmax_pred,
                 }
 
-        # Èç¹ûÃ»ÓĞ¸ø±êÇ© ÔòÊä³ölogits½á¹û
+        # å¦‚æœæ²¡æœ‰ç»™æ ‡ç­¾ åˆ™è¾“å‡ºlogitsç»“æœ
         if labels is not None:
             loss = self.compute_loss(softmax_pred, labels)
             res_dict["loss"] = loss
 
-        ## µ÷ÕûlabelµÄĞÎ×´
+        ## è°ƒæ•´labelçš„å½¢çŠ¶
         #if len(labels.shape) == 1:
         #    labels = torch.reshape(labels, shape=(-1,))
         ##logging.info("labels shape: {}".format(labels.shape))

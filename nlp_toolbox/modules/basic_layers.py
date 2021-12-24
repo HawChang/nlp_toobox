@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   basic_layers.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/01/14 16:14:58
 Desc  :   
 """
@@ -19,7 +19,7 @@ class EmbeddingLayer(nn.Module):
     """
 
     def __init__(self, vocab_size, emb_dim, is_sparse=True, padding_idx=0):
-        """³õÊ¼
+        """åˆå§‹
         """
         super(EmbeddingLayer, self).__init__()
         self.emb_layer = nn.Embedding(
@@ -30,13 +30,13 @@ class EmbeddingLayer(nn.Module):
             )
 
     def forward(self, inputs):
-        """Ç°ÏòÔ¤²â
+        """å‰å‘é¢„æµ‹
         """
         return self.emb_layer(inputs)
 
 
 class ConvPoolLayer(nn.Module):
-    """¾í»ı³Ø»¯²ã
+    """å·ç§¯æ± åŒ–å±‚
     """
     def __init__(self,
             num_channels,
@@ -54,7 +54,7 @@ class ConvPoolLayer(nn.Module):
             )
 
     def forward(self, inputs):
-        """Ç°ÏòÔ¤²â
+        """å‰å‘é¢„æµ‹
         """
         # inputs shape = [batch_size, num_channels, seq_len, emb_dim] [N, C, H, W]
         #logging.info("inputs shape: {}".format(inputs.shape))
@@ -75,7 +75,7 @@ class ConvPoolLayer(nn.Module):
 
 
 class TextCNNLayer(nn.Module):
-    """textcnn²ã
+    """textcnnå±‚
     """
     def __init__(self,
             emb_dim,
@@ -90,7 +90,7 @@ class TextCNNLayer(nn.Module):
             win_size_list = [3]
 
         def gen_conv_pool(win_size):
-            """Éú³ÉÖ¸¶¨´°¿ÚµÄ¾í»ı³Ø»¯²ã
+            """ç”ŸæˆæŒ‡å®šçª—å£çš„å·ç§¯æ± åŒ–å±‚
             """
             return ConvPoolLayer(
                     num_channels,
@@ -107,18 +107,18 @@ class TextCNNLayer(nn.Module):
         self.fc = nn.Linear(in_features=num_filters * len(win_size_list), out_features=output_dim)
 
     def forward(self, input_emb):
-        """Ç°ÏòÔ¤²â
+        """å‰å‘é¢„æµ‹
         """
         # emb shape = [batch_size, 1, seq_len, emb_dim]
         emb = torch.unsqueeze(input_emb, dim=1)
         #logging.info("emb shape: {}".format(emb.shape))
 
-        # ÁĞ±íÖĞ¸÷ÔªËØµÄshape = [batch_size, num_filters]
+        # åˆ—è¡¨ä¸­å„å…ƒç´ çš„shape = [batch_size, num_filters]
         conv_pool_res_list = [conv_pool(emb) for conv_pool in self.conv_pool_list]
         #for index, conv_pool_res in enumerate(conv_pool_res_list):
         #    logging.info("conv_pool_res #{} shape: {}".format(index, conv_pool_res.shape))
 
-        # ÁĞ±íÖĞ¸÷ÔªËØµÄshape = [batch_size, len(win_size_list)*num_filters]
+        # åˆ—è¡¨ä¸­å„å…ƒç´ çš„shape = [batch_size, len(win_size_list)*num_filters]
         conv_pool_res = torch.cat(conv_pool_res_list, dim=-1)
 
         output = self.fc(conv_pool_res)

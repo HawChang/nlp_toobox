@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 File  :   data_loader_bundle.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/06/24 14:15:35
 Desc  :   
 """
@@ -40,7 +40,7 @@ class DataLoaderBundle(object):
         return tool_dict
 
     def build(self):
-        """
+        """构造
         """
         loaders_dict = self.params_dict["loaders"]
         for cur_loader_name in DataLoaderType.TYPE_LIST:
@@ -64,9 +64,13 @@ class DataLoaderBundle(object):
         #    break
 
     def to_dict(self):
+        """转字典
+        """
         return {k: v for k, v in self.items()}
 
     def items(self):
+        """返回k-v对迭代器
+        """
         for cur_loader_name in DataLoaderType.TYPE_LIST:
             if cur_loader_name in self:
                 yield cur_loader_name, self[cur_loader_name]

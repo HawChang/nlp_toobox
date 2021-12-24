@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   gru.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/01/14 16:23:02
 Desc  :   
 """
@@ -17,7 +17,7 @@ from nlp_toolbox.modules.losses.label_smoothing_cross_entropy_loss import LabelS
 
 
 class GRUClassifier(nn.Module):
-    """GRU·ÖÀàÄ£ĞÍ
+    """GRUåˆ†ç±»æ¨¡å‹
     """
     def __init__(self,
             num_class,
@@ -72,7 +72,7 @@ class GRUClassifier(nn.Module):
 
     def compute_loss(self, softmax_pred, labels):
         """
-        ¼ÆËãloss
+        è®¡ç®—loss
         softmax_pred: (batch_size, 1)
         """
         softmax_pred = softmax_pred.view(-1, self.num_class)
@@ -86,7 +86,7 @@ class GRUClassifier(nn.Module):
         return loss
 
     def forward(self, input_ids, *args, labels=None, only_loss=False, **kwargs):
-        """Ç°ÏòÔ¤²â
+        """å‰å‘é¢„æµ‹
         """
         self.gru.flatten_parameters()
 
@@ -97,7 +97,7 @@ class GRUClassifier(nn.Module):
         #logging.info("gru_out shape: {}".format(gru_out.shape))
 
         #encoded_vector = L.reduce_max(encoded_vector, dim=1)
-        # È¡×îºóÒ»¸öÊ±¼ä²½µÄÊä³ö
+        # å–æœ€åä¸€ä¸ªæ—¶é—´æ­¥çš„è¾“å‡º
         gru_out = gru_out[:,-1]
         #logging.info("gru_out last output  shape: {}".format(gru_out.shape))
 
@@ -116,7 +116,7 @@ class GRUClassifier(nn.Module):
                 "sent_softmax": softmax_pred,
                 }
 
-        # Èç¹ûÃ»ÓĞ¸ø±êÇ© ÔòÊä³ölogits½á¹û
+        # å¦‚æœæ²¡æœ‰ç»™æ ‡ç­¾ åˆ™è¾“å‡ºlogitsç»“æœ
         if labels is not None:
             loss = self.compute_loss(softmax_pred, labels)
             res_dict["loss"] = loss
@@ -126,7 +126,7 @@ class GRUClassifier(nn.Module):
         ##print("labels shape: {}".format(labels.shape))
 
         #loss = self.ce_loss(logits, labels)
-        ## Èç¹ûÊä³ölogitsµÄ¼¤»îº¯ÊıÎªsoftmax Ôò²»ÄÜÓÃsoftmax_with_cross_entropy
+        ## å¦‚æœè¾“å‡ºlogitsçš„æ¿€æ´»å‡½æ•°ä¸ºsoftmax åˆ™ä¸èƒ½ç”¨softmax_with_cross_entropy
         ##loss = L.cross_entropy(logits, labels)
         ##loss = L.reduce_mean(loss)
         #res_dict["loss"] = loss

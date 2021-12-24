@@ -1,26 +1,21 @@
-#!/usr/bin/env python
-# -*- coding: gb18030 -*-
-########################################################################
-# 
-# Copyright (c) 2019 Baidu.com, Inc. All Rights Reserved
-# 
-########################################################################
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
  
 """
 File: label_encoder.py
-Author: zhanghao55(zhanghao55@baidu.com)
+Author: zhanghao(changhaw@126.com)
 Date: 2019/11/08 10:39:02
 """
 
 import codecs
 
 class LabelEncoder(object):
-    """Àà±ğ´¦Àí¹¤¾ß
+    """ç±»åˆ«å¤„ç†å·¥å…·
     """
     def __init__(self, label_id_info, other_label_id=0, other_label_name="Other", isFile=True):
-        """³õÊ¼»¯Àà±ğ±àÂëÀà
-        [in]  label_id_info: str/dict, Àà±ğ¼°Æä¶ÔÓ¦idµÄĞÅÏ¢
-              isFile: bool, ËµÃ÷ĞÅÏ¢ÊÇ×Öµä»¹ÊÇÎÄ¼ş£¬ÈôÊÇÎÄ¼şÔò´ÓÆäÖĞ¼ÓÔØĞÅÏ¢
+        """åˆå§‹åŒ–ç±»åˆ«ç¼–ç ç±»
+        [in]  label_id_info: str/dict, ç±»åˆ«åŠå…¶å¯¹åº”idçš„ä¿¡æ¯
+              isFile: bool, è¯´æ˜ä¿¡æ¯æ˜¯å­—å…¸è¿˜æ˜¯æ–‡ä»¶ï¼Œè‹¥æ˜¯æ–‡ä»¶åˆ™ä»å…¶ä¸­åŠ è½½ä¿¡æ¯
               
         """
         if isFile:
@@ -48,9 +43,9 @@ class LabelEncoder(object):
         assert len(self.label_id_dict) == len(self.id_label_dict), "dict is has duplicate key or value."
 
     def load_class_id_file(self, label_id_path):
-        """¼ÓÔØclass_idÎÄ¼ş
-        [in]  label_id_path: str, Àà±ğ¼°Æä¶ÔÓ¦idĞÅÏ¢ÎÄ¼ş
-        [out] label_id_dict: dict, Àà±ğ->id×Öµä
+        """åŠ è½½class_idæ–‡ä»¶
+        [in]  label_id_path: str, ç±»åˆ«åŠå…¶å¯¹åº”idä¿¡æ¯æ–‡ä»¶
+        [out] label_id_dict: dict, ç±»åˆ«->idå­—å…¸
         """
         id_set = set()
         label_id_dict = dict()
@@ -65,25 +60,25 @@ class LabelEncoder(object):
         return label_id_dict 
 
     def transform(self, label_name):
-        """Àà±ğÃû³Æ×ªid
-        [in]  label_name: str, Àà±ğÃû³Æ
-        [out] label_id: id, Àà±ğÃû³Æ¶ÔÓ¦µÄid
+        """ç±»åˆ«åç§°è½¬id
+        [in]  label_name: str, ç±»åˆ«åç§°
+        [out] label_id: id, ç±»åˆ«åç§°å¯¹åº”çš„id
         """
         if label_name not in self.label_id_dict:
             raise ValueError("unknown label name: %s" % label_name)
         return self.label_id_dict[label_name]
 
     def inverse_transform(self, label_id):
-        """Àà±ğÃû³Æ×ªid
-        [in]  label_id: id, Àà±ğÃû³Æ¶ÔÓ¦µÄid
-        [out] label_name: str, Àà±ğÃû³Æ
+        """ç±»åˆ«åç§°è½¬id
+        [in]  label_id: id, ç±»åˆ«åç§°å¯¹åº”çš„id
+        [out] label_name: str, ç±»åˆ«åç§°
         """
         if label_id not in self.id_label_dict:
             raise ValueError("unknown label id: %s" % label_id)
         return self.id_label_dict[label_id]
 
     def size(self):
-        """·µ»ØÀà±ğÊı
-        [out] label_num: int, Àà±ğÊ÷Ä¿
+        """è¿”å›ç±»åˆ«æ•°
+        [out] label_num: int, ç±»åˆ«æ ‘ç›®
         """
         return len(self.label_id_dict)

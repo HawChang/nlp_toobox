@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 File  :   textcnn_similarity.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/07/13 19:54:20
 Desc  :   
 """
@@ -17,7 +17,11 @@ from nlp_toolbox.utils.manual_config import InstanceName
 
 @RegisterSet.models.register
 class TextCNNSimilarity(SimModel):
+    """textcnn 相似匹配函数
+    """
     @model_distributed(find_unused_parameters=True, distributed=RegisterSet.IS_DISTRIBUTED)
     def init_model(self, **kwargs):
+        """初始化模型
+        """
         model = TextCNNMatching(**kwargs)
         return model

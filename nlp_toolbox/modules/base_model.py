@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   base_model.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   20/12/21 10:47:13
 Desc  :   
 """
@@ -51,14 +51,14 @@ def model_distributed(local_rank=None, find_unused_parameters=False):
 
 class BaseModel(object):
     def __init__(self, *args, **kwargs):
-        """³õÊ¼»¯
+        """åˆå§‹åŒ–
         """
-        # ·Ö²¼Ê½ÑµÁ·Ê±ÎªTrue
+        # åˆ†å¸ƒå¼è®­ç»ƒæ—¶ä¸ºTrue
         self.distributed = False
-        # µ±·Ö²¼Ê½ÑµÁ·Ê± local_rankÎª¸÷½ø³ÌÎ¨Ò»ID Îª0µÄÎªÖ÷½ø³Ì
-        # µ±µ¥»úµ¥¿¨ÑµÁ·Ê± local_rankÎª0
+        # å½“åˆ†å¸ƒå¼è®­ç»ƒæ—¶ local_rankä¸ºå„è¿›ç¨‹å”¯ä¸€ID ä¸º0çš„ä¸ºä¸»è¿›ç¨‹
+        # å½“å•æœºå•å¡è®­ç»ƒæ—¶ local_rankä¸º0
         self.local_rank = 0
-        # µ±·Ö²¼Ê½ÑµÁ· µ«¸Ã½ø³Ì²»ÊÇÖ÷½ø³ÌÊ± is_masterÎªFalse£¬ÆäÓàÇé¿ö¾ùÎªTrue
+        # å½“åˆ†å¸ƒå¼è®­ç»ƒ ä½†è¯¥è¿›ç¨‹ä¸æ˜¯ä¸»è¿›ç¨‹æ—¶ is_masterä¸ºFalseï¼Œå…¶ä½™æƒ…å†µå‡ä¸ºTrue
         self.is_master = True
         self.model = self.init_model(*args, **kwargs)
         if not self.distributed:
@@ -66,7 +66,7 @@ class BaseModel(object):
             self.model.to(self.device)
 
     def init_optimizer(self, model, learning_rate, **kwargs):
-        """³õÊ¼»¯ÓÅ»¯Æ÷
+        """åˆå§‹åŒ–ä¼˜åŒ–å™¨
         """
         return torch.optim.Adam(
                 model.parameters(),
@@ -107,20 +107,20 @@ class BaseModel(object):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_schedule_func)
 
     def save_model(self, save_path):
-        """±£´æÄ£ĞÍ
+        """ä¿å­˜æ¨¡å‹
         """
         start_time = time.time()
         torch.save(self.get_model().state_dict(), save_path)
         logging.info("cost time: %.4fs" % (time.time() - start_time))
 
     def load_model(self, model_path, strict=True):
-        """¼ÓÔØÄ£ĞÍ
+        """åŠ è½½æ¨¡å‹
         """
         if os.path.exists(model_path):
             logging.info("load model from {}".format(model_path))
             start_time = time.time()
-            # ÔÚcpuÉÏ¼ÓÔØÊı¾İ È»ºó¼ÓÔØµ½Ä£ĞÍ
-            # ²»È»ÔÚ·Ö²¼Ê½ÑµÁ·Ê± ¸÷¿¨¶¼»áÔÚcuda:0ÉÏ¼ÓÔØÒ»´ÎÊı¾İ
+            # åœ¨cpuä¸ŠåŠ è½½æ•°æ® ç„¶ååŠ è½½åˆ°æ¨¡å‹
+            # ä¸ç„¶åœ¨åˆ†å¸ƒå¼è®­ç»ƒæ—¶ å„å¡éƒ½ä¼šåœ¨cuda:0ä¸ŠåŠ è½½ä¸€æ¬¡æ•°æ®
             state_dict = torch.load(model_path, map_location=torch.device('cpu'))
             logging.debug("state_dict_names: {}".format(state_dict.keys()))
             self.get_model().load_state_dict(state_dict, strict=strict)
@@ -130,7 +130,7 @@ class BaseModel(object):
             logging.info("cannot find model file: {}".format(model_path))
 
     def get_model(self):
-        """È¡µÃÄ£ĞÍ
+        """å–å¾—æ¨¡å‹
         """
         if self.distributed:
             return self.model.module
@@ -144,42 +144,42 @@ class BaseModel(object):
             adversarial_training=False, scheduler_mode=None,
             swa=False, swa_start_epoch=None, swa_anneal_epoch=5, swa_lr=None, swa_anneal_strategy="cos",
             strict=True, **kwargs):
-        """ ÑµÁ·dygraphÄ£ĞÍ
-        [IN]  model: dygraphÄ£ĞÍ½á¹¹
-              optimizer: ÓÅ»¯Æ÷
-              train_data_list: list[(input1[, input2, ...], label)], ÑµÁ·Êı¾İ
-              eval_data_list: list[(input1[, input2, ...], label)], ÆÀ¹ÀÊı¾İ
-              label_encoder: LabelEncoder, Àà±ğ×ª»¯¹¤¾ß
-              model_save_path: string, Ä£ĞÍ´æ´¢Â·¾¶
-              best_model_save_path: string, ×îÓÅÄ£ĞÍ´æ´¢Â·¾¶
-              epochs:  int, ÑµÁ·ÂÖÊı
-              batch_size: int, Åú´óĞ¡
-              max_seq_len: int, ×î´ó³¤¶È
-              max_ensure: boolean, trueÔòÊ¼ÖÕ²¹Æëµ½max_seq_len
-              best_acc: float, ×îÓÅacc³õÊ¼Öµ
-              print_step: int, Ã¿¸öprint_step´òÓ¡ÑµÁ·Çé¿ö
-              logits_softmax: boolean, trueÔòÑéÖ¤Ê±Êä³ösoftmaxºóµÄlogits
-              eval_method: str, evalÄ£ĞÍĞ§¹û
-              with_label: boolean, trueÔòÊı¾İÖĞÓĞlabel
-        [OUT] best_acc: float, ÑµÁ·µÃµ½µÄ×îÓÅacc
+        """ è®­ç»ƒdygraphæ¨¡å‹
+        [IN]  model: dygraphæ¨¡å‹ç»“æ„
+              optimizer: ä¼˜åŒ–å™¨
+              train_data_list: list[(input1[, input2, ...], label)], è®­ç»ƒæ•°æ®
+              eval_data_list: list[(input1[, input2, ...], label)], è¯„ä¼°æ•°æ®
+              label_encoder: LabelEncoder, ç±»åˆ«è½¬åŒ–å·¥å…·
+              model_save_path: string, æ¨¡å‹å­˜å‚¨è·¯å¾„
+              best_model_save_path: string, æœ€ä¼˜æ¨¡å‹å­˜å‚¨è·¯å¾„
+              epochs:  int, è®­ç»ƒè½®æ•°
+              batch_size: int, æ‰¹å¤§å°
+              max_seq_len: int, æœ€å¤§é•¿åº¦
+              max_ensure: boolean, trueåˆ™å§‹ç»ˆè¡¥é½åˆ°max_seq_len
+              best_acc: float, æœ€ä¼˜accåˆå§‹å€¼
+              print_step: int, æ¯ä¸ªprint_stepæ‰“å°è®­ç»ƒæƒ…å†µ
+              logits_softmax: boolean, trueåˆ™éªŒè¯æ—¶è¾“å‡ºsoftmaxåçš„logits
+              eval_method: str, evalæ¨¡å‹æ•ˆæœ
+              with_label: boolean, trueåˆ™æ•°æ®ä¸­æœ‰label
+        [OUT] best_acc: float, è®­ç»ƒå¾—åˆ°çš„æœ€ä¼˜acc
         """
         logging.info("train model start at rank {}".format(self.local_rank))
         train_start_time = time.time()
 
-        # ¼ÓÔØ×îÓÅÄ£ĞÍ
+        # åŠ è½½æœ€ä¼˜æ¨¡å‹
         if load_best_model:
             self.load_model(best_model_save_path, strict)
 
         if adversarial_training:
             fgm = FGM(self.model)
 
-        # ³õÊ¼»¯ÓÅ»¯Æ÷
+        # åˆå§‹åŒ–ä¼˜åŒ–å™¨
         optimizer = self.init_optimizer(self.model, learning_rate, **kwargs)
-        # Ëæ»úÈ¨ÖØÆ½¾ù
+        # éšæœºæƒé‡å¹³å‡
         if swa:
-            # ÎªÁË¿ÉÒÔÓÃbreak¿ìËÙÌø³ö
+            # ä¸ºäº†å¯ä»¥ç”¨breakå¿«é€Ÿè·³å‡º
             for _ in range(1):
-                # ÅĞ¶ÏepochÊıÊÇ·ñ¹»°²ÅÅswa
+                # åˆ¤æ–­epochæ•°æ˜¯å¦å¤Ÿå®‰æ’swa
                 if epochs < 3:
                     logging.warning("epoch num({}) too small to stochastic weight averageing.".
                             format(epochs))
@@ -187,13 +187,13 @@ class BaseModel(object):
                     break
 
                 if swa_start_epoch is None:
-                    # swaÄ¬ÈÏ´Óºó25%µÄepoch¿ªÊ¼
+                    # swaé»˜è®¤ä»å25%çš„epochå¼€å§‹
                     swa_start_epoch = max(int(epochs * 0.75), 2)
                     logging.warning("swa_start_epoch set to {} according to epochs".
                             format(swa_start_epoch))
 
                 if swa_start_epoch > epochs:
-                    # epochs >= 2, Òò´Ëepochs//2Ò»¶¨´óÓÚ0
+                    # epochs >= 2, å› æ­¤epochs//2ä¸€å®šå¤§äº0
                     new_swa_start_epoch = max(epochs - swa_anneal_epoch, 2)
                     logging.warning("swa_start_epoch({}) > epochs({}), "\
                             "reset swa_start_epoch to {} according to swa_anneal_epoch({})".
@@ -228,7 +228,7 @@ class BaseModel(object):
                         anneal_epochs=swa_anneal_epoch,
                         swa_lr=swa_lr)
 
-        # Ñ§Ï°ÂÊµ÷Õû
+        # å­¦ä¹ ç‡è°ƒæ•´
         if scheduler_mode is not None:
             lr_schedule_epoch = swa_start_epoch if swa else epochs
             lr_scheduler = self.init_scheduler(
@@ -240,12 +240,12 @@ class BaseModel(object):
 
         cur_train_step = 0
         for cur_epoch in range(epochs):
-            # Èç¹ûÊÇdistributed ÒªÊÖ¶¯¸ødataloaderÉèÖÃepoch ÒÔÈÃÆäÃ¿¸öepochÖØĞÂ´òÂÒÊı¾İ
+            # å¦‚æœæ˜¯distributed è¦æ‰‹åŠ¨ç»™dataloaderè®¾ç½®epoch ä»¥è®©å…¶æ¯ä¸ªepoché‡æ–°æ‰“ä¹±æ•°æ®
             if self.distributed:
                 train_dataloader.sampler.set_epoch(cur_epoch)
 
-            # ½øÈëtrainÄ£Ê½
-            # Ã¿epoch¶¼Òªtrain ÒòÎªevaluateµÄÊ±ºò»á±äeval
+            # è¿›å…¥trainæ¨¡å¼
+            # æ¯epochéƒ½è¦train å› ä¸ºevaluateçš„æ—¶å€™ä¼šå˜eval
             self.model.train()
 
             if self.is_master:
@@ -253,34 +253,34 @@ class BaseModel(object):
 
             for cur_train_batch in train_dataloader:
                 cur_train_step += 1
-                # Çå¿ÕÖ®Ç°µÄÌİ¶È
+                # æ¸…ç©ºä¹‹å‰çš„æ¢¯åº¦
                 optimizer.zero_grad()
 
-                # »ñµÃ±¾batch_loss ²¢·´´«µÃµ½Ìİ¶È
+                # è·å¾—æœ¬batch_loss å¹¶åä¼ å¾—åˆ°æ¢¯åº¦
                 loss = self.get_loss(*cur_train_batch)
                 loss.backward()
 
-                # ¶Ô¿¹ÑµÁ·
+                # å¯¹æŠ—è®­ç»ƒ
                 if adversarial_training:
-                    # ¼ÓÈë¶Ô¿¹ÈÅ¶¯
+                    # åŠ å…¥å¯¹æŠ—æ‰°åŠ¨
                     fgm.attack(emb_name="word_embeddings.")
-                    # ÔÙ¼ÆËãloss
+                    # å†è®¡ç®—loss
                     loss_adv = self.get_loss(*cur_train_batch)
-                    # ·´´« ÀÛ¼ÓÌİ¶È
+                    # åä¼  ç´¯åŠ æ¢¯åº¦
                     loss_adv.backward()
-                    # »Ö¸´emb²ÎÊı
+                    # æ¢å¤embå‚æ•°
                     fgm.restore()
 
-                # ÓÃ»ñÈ¡µÄÌİ¶È¸üĞÂÄ£ĞÍ²ÎÊı
+                # ç”¨è·å–çš„æ¢¯åº¦æ›´æ–°æ¨¡å‹å‚æ•°
                 optimizer.step()
-                # ÓÅ»¯Æ÷¸üĞÂºóÔÙ¸üĞÂÑ§Ï°ÂÊµ÷ÕûÆ÷
+                # ä¼˜åŒ–å™¨æ›´æ–°åå†æ›´æ–°å­¦ä¹ ç‡è°ƒæ•´å™¨
                 if (not swa or cur_epoch < swa_start_epoch) and scheduler_mode is not None:
                     lr_scheduler.step()
 
                 logging.debug("optimizer learning_rate: {}".
                         format([x['lr'] for x in optimizer.state_dict()['param_groups']]))
 
-                # Çå¿ÕÖ®Ç°µÄÌİ¶È
+                # æ¸…ç©ºä¹‹å‰çš„æ¢¯åº¦
                 optimizer.zero_grad()
 
                 loss = loss.cpu().detach().numpy()
@@ -300,8 +300,8 @@ class BaseModel(object):
                     pbar.update(1)
 
             if swa and cur_epoch + 1 >= swa_start_epoch:
-                # ÒòÎªÕâÀï½áÊøºó¾ÍÒªÏÂÒ»epoch Òò´ËÕâÀïĞèÒªÅĞ¶ÏµÄÊÇÏÂÒ»¸öepochÊÇ²»ÊÇstart_epoch
-                # µ±lr_scheduler½áÊøºó ÏÂÒ»¸öepochÒªswa_schedulerÁË ¾ÍÓ¦¸ÃÖ±½Ó¿ªÊ¼step
+                # å› ä¸ºè¿™é‡Œç»“æŸåå°±è¦ä¸‹ä¸€epoch å› æ­¤è¿™é‡Œéœ€è¦åˆ¤æ–­çš„æ˜¯ä¸‹ä¸€ä¸ªepochæ˜¯ä¸æ˜¯start_epoch
+                # å½“lr_schedulerç»“æŸå ä¸‹ä¸€ä¸ªepochè¦swa_scheduleräº† å°±åº”è¯¥ç›´æ¥å¼€å§‹step
                 swa_model.update_parameters(self.model)
                 swa_scheduler.step()
 
@@ -309,15 +309,15 @@ class BaseModel(object):
                 pbar.close()
 
                 if model_save_path is not None:
-                    # Ã¿ÂÖ±£´æÄ£ĞÍ
+                    # æ¯è½®ä¿å­˜æ¨¡å‹
                     logging.info("save model at epoch {}".format(cur_epoch))
                     self.save_model(model_save_path + "_epoch{}".format(cur_epoch))
 
-            # ¼ÆËãÑéÖ¤¼¯×¼È·ÂÊ
+            # è®¡ç®—éªŒè¯é›†å‡†ç¡®ç‡
             cur_eval_res = self.evaluate(eval_dataloader, **kwargs)
             is_best = self.check_if_best(cur_eval_res)
             if self.is_master and is_best and best_model_save_path is not None:
-                # Èç¹ûÊÇµ±Ç°×îÓÅĞ§¹ûÄ£ĞÍ Ôò±£´æÎªbestÄ£ĞÍ
+                # å¦‚æœæ˜¯å½“å‰æœ€ä¼˜æ•ˆæœæ¨¡å‹ åˆ™ä¿å­˜ä¸ºbestæ¨¡å‹
                 logging.info("cur best score = {}, save model at epoch {} as best model".format(self.get_best_score(), cur_epoch))
                 self.save_model(best_model_save_path)
 
@@ -326,34 +326,34 @@ class BaseModel(object):
             self.model = swa_model
 
             if self.is_master and model_save_path is not None:
-                # Ã¿ÂÖ±£´æÄ£ĞÍ
+                # æ¯è½®ä¿å­˜æ¨¡å‹
                 logging.info("save model at swa")
                 self.save_model(model_save_path + "_swa")
 
-            # ¼ÆËãÑéÖ¤¼¯×¼È·ÂÊ
+            # è®¡ç®—éªŒè¯é›†å‡†ç¡®ç‡
             cur_eval_res = self.evaluate(eval_dataloader, **kwargs)
             is_best = self.check_if_best(cur_eval_res)
             if self.is_master and is_best and best_model_save_path is not None:
-                # Èç¹ûÊÇµ±Ç°×îÓÅĞ§¹ûÄ£ĞÍ Ôò±£´æÎªbestÄ£ĞÍ
+                # å¦‚æœæ˜¯å½“å‰æœ€ä¼˜æ•ˆæœæ¨¡å‹ åˆ™ä¿å­˜ä¸ºbestæ¨¡å‹
                 logging.info("cur best score = {}, save model at swa as best model".format(self.get_best_score()))
                 self.save_model(best_model_save_path)
         logging.info("train model cost time %.4fs" % (time.time() - train_start_time))
         return self.get_best_score()
 
     def infer(self, *infer_data_list, **kwargs):
-        """ ÓÃdygraphÄ£ĞÍÔ¤²â
-        [IN]  model: dygraphÄ£ĞÍ½á¹¹
-              infer_data: list[(input1[, input2, ...])], ´ıÔ¤²âÊı¾İ
-        [OUT] pred: list[float], Ô¤²â½á¹û
+        """ ç”¨dygraphæ¨¡å‹é¢„æµ‹
+        [IN]  model: dygraphæ¨¡å‹ç»“æ„
+              infer_data: list[(input1[, input2, ...])], å¾…é¢„æµ‹æ•°æ®
+        [OUT] pred: list[float], é¢„æµ‹ç»“æœ
         """
-        # ÊäÈëÊı¾İÊÇ·ñÒÑ×ªÎªpaddle½ÓÊÕµÄtensor
+        # è¾“å…¥æ•°æ®æ˜¯å¦å·²è½¬ä¸ºpaddleæ¥æ”¶çš„tensor
         is_tensor = kwargs.pop("is_tensor", True)
 
-        # inferÊ±²»±£´æ·´ÏòµÄÌİ¶È
+        # inferæ—¶ä¸ä¿å­˜åå‘çš„æ¢¯åº¦
         with torch.no_grad():
-            # ¿ØÖÆÄ£ĞÍ½øÈëevalÄ£Ê½£¬Õâ½«»á¹Ø±ÕËùÓĞµÄdropoutºÍnorm£»
+            # æ§åˆ¶æ¨¡å‹è¿›å…¥evalæ¨¡å¼ï¼Œè¿™å°†ä¼šå…³é—­æ‰€æœ‰çš„dropoutå’Œnormï¼›
             self.model.eval()
-            # Èç¹ûinfer_data_listÃ»ÓĞ×ªtensor Ôò×ªÎªtorch½ÓÊÕµÄtensor
+            # å¦‚æœinfer_data_listæ²¡æœ‰è½¬tensor åˆ™è½¬ä¸ºtorchæ¥æ”¶çš„tensor
             if not is_tensor:
                 infer_data_list = [torch.tensor(x, device=self.device) for x in infer_data_list]
             else:
@@ -362,7 +362,7 @@ class BaseModel(object):
             #logging.info("infer_data_list[0] shape: {}".format(infer_data_list[0].shape))
             infer_res = self.model(*infer_data_list, **kwargs)
 
-            # °´¸÷Êä³ö¾ÛºÏ½á¹û
+            # æŒ‰å„è¾“å‡ºèšåˆç»“æœ
             if isinstance(infer_res, tuple):
                 infer_res = tuple([x.detach() for x in infer_res])
             else:
@@ -371,12 +371,12 @@ class BaseModel(object):
         return infer_res
 
     def predict(self, infer_dataloader, print_step=20, gather_output_inds=None, **kwargs):
-        """ ÓÃdygraphÄ£ĞÍÖğÅúÔ¤²â
-        [IN]  model: dygraphÄ£ĞÍ½á¹¹
-              infer_dataloader: DataLoader, ´ıÔ¤²âÊı¾İ
-              print_step: int, Ã¿¸öprint_step´òÓ¡ÑµÁ·Çé¿ö
-              logits_softmax: boolean, trueÔòÔ¤²â½á¹ûÎªsoftmaxºóµÄlogits
-        [OUT] pred: tuple(list[float]), Ô¤²â½á¹û
+        """ ç”¨dygraphæ¨¡å‹é€æ‰¹é¢„æµ‹
+        [IN]  model: dygraphæ¨¡å‹ç»“æ„
+              infer_dataloader: DataLoader, å¾…é¢„æµ‹æ•°æ®
+              print_step: int, æ¯ä¸ªprint_stepæ‰“å°è®­ç»ƒæƒ…å†µ
+              logits_softmax: boolean, trueåˆ™é¢„æµ‹ç»“æœä¸ºsoftmaxåçš„logits
+        [OUT] pred: tuple(list[float]), é¢„æµ‹ç»“æœ
         """
         infer_res_list = None
 
@@ -410,7 +410,7 @@ class BaseModel(object):
                 logging.info('infer step %d, total cost time = %.4fs, speed %.2f step/s' \
                         % (cur_infer_step, cost_time, speed))
 
-        # Æ´½ÓÔ¤²âµÄ¸÷Êä³ötensor
+        # æ‹¼æ¥é¢„æµ‹çš„å„è¾“å‡ºtensor
         for index in range(len(infer_res_list)):
             infer_res_list[index] = torch.cat(infer_res_list[index], dim=0)
             logging.info("infer_res_list[{}] shape: {}".format(index, infer_res_list[index].shape))
@@ -419,14 +419,14 @@ class BaseModel(object):
             infer_res_gather_list = list()
             for cur_res_tensor in infer_res_list:
                 cur_res_gather = [torch.zeros_like(cur_res_tensor).to(self.device) for _ in range(torch.distributed.get_world_size())]
-                # ÓĞgatherº¯Êı µ«¶Ôgather²Ù×÷ ncclÖ»Ö§³Öall_gather,²»Ö§³Ögather
+                # æœ‰gatherå‡½æ•° ä½†å¯¹gatheræ“ä½œ ncclåªæ”¯æŒall_gather,ä¸æ”¯æŒgather
                 torch.distributed.all_gather(cur_res_gather, cur_res_tensor)
 
-                # ½á¹ûÆ´½Ó
+                # ç»“æœæ‹¼æ¥
                 cur_res_gather_tensor = torch.cat(cur_res_gather, dim=0)
                 logging.info("cur_res_gather_tensor shape: {}".format(cur_res_gather_tensor.shape))
 
-                # È¥³ıºóÃæ²¹ÆëµÄ
+                # å»é™¤åé¢è¡¥é½çš„
                 cur_res_gather_tensor = cur_res_gather_tensor[:len(infer_dataloader.dataset)]
                 logging.info("cur_res_gather_tensor shape: {}".format(cur_res_gather_tensor.shape))
 
@@ -437,22 +437,22 @@ class BaseModel(object):
         return tuple(infer_res_list)
 
     def init_model(self, *args, **kwargs):
-        """ÍøÂç¹¹½¨º¯Êı
+        """ç½‘ç»œæ„å»ºå‡½æ•°
         """
         raise NotImplementedError
 
     def get_loss(self, *args, **kwargs):
-        """ÑµÁ·Ê±ÈçºÎµÃµ½loss
+        """è®­ç»ƒæ—¶å¦‚ä½•å¾—åˆ°loss
         """
         raise NotImplementedError
 
     def evaluate(self, eval_dataloader, print_step=50, gather_loss=False, **kwargs):
-        """Ä£ĞÍÆÀ¹À
+        """æ¨¡å‹è¯„ä¼°
         """
         raise NotImplementedError
 
     def check_if_best(self, cur_eval_res):
-        """¸ù¾İÆÀ¹À½á¹û ÅĞ¶ÏÊÇ·ñ×îÓÅ
+        """æ ¹æ®è¯„ä¼°ç»“æœ åˆ¤æ–­æ˜¯å¦æœ€ä¼˜
         """
         raise NotImplementedError
 
@@ -464,7 +464,7 @@ class BaseModel(object):
 
 class ClassificationModel(BaseModel):
     def __init__(self, best_acc=None, label_encoder=None, *args, **kwargs):
-        """³õÊ¼»¯
+        """åˆå§‹åŒ–
         """
         super(ClassificationModel, self).__init__(*args, **kwargs)
         self.best_acc = best_acc
@@ -478,7 +478,7 @@ class ClassificationModel(BaseModel):
         loss = self.model(*input_data, labels=input_label, **kwargs)
         logging.debug("loss size: {}".format(len(loss)))
         #logging.info("loss: {}".format(loss))
-        # Ä£ĞÍµÄ·µ»ØÖµ¿ÉÄÜÓÉ¶à¸ö ¹æ¶¨µÚÒ»¸öÎªloss
+        # æ¨¡å‹çš„è¿”å›å€¼å¯èƒ½ç”±å¤šä¸ª è§„å®šç¬¬ä¸€ä¸ªä¸ºloss
         if isinstance(loss, tuple):
             loss = loss[0]
         return loss
@@ -507,20 +507,20 @@ class ClassificationModel(BaseModel):
                 logging.info('eval step %d, total cost time = %.4fs, speed %.2f step/s' \
                         % (cur_eval_step, cost_time, speed))
 
-        # predÊÇÄ£ĞÍÔ¤²âµÄ½á¹û Ä£ĞÍÊÇÔÚself.deviceÉÏµÄ
+        # predæ˜¯æ¨¡å‹é¢„æµ‹çš„ç»“æœ æ¨¡å‹æ˜¯åœ¨self.deviceä¸Šçš„
         all_pred = torch.cat(all_pred, dim=0)
-        # labelÊÇÖ±½Ó´ÓdataloaderÄÃµÄÊı¾İ »¹Ã»ÓĞ·ÅÔÚself.deviceÉÏ
+        # labelæ˜¯ç›´æ¥ä»dataloaderæ‹¿çš„æ•°æ® è¿˜æ²¡æœ‰æ”¾åœ¨self.deviceä¸Š
         all_label = torch.cat(all_label, dim=0).to(self.device)
 
         logging.debug("all pred shape: {}".format(all_pred.shape))
         logging.debug("all label shape: {}".format(all_label.shape))
 
         if self.distributed:
-            # µ±·Ö²¼Ê½ÑµÁ·Ê± ĞèÒª¿¼ÂÇÈ«²¿µÄevalÊı¾İ
-            # ½¨Á¢Ò»¸ö±£´æËùÓĞ½á¹ûµÄlist
+            # å½“åˆ†å¸ƒå¼è®­ç»ƒæ—¶ éœ€è¦è€ƒè™‘å…¨éƒ¨çš„evalæ•°æ®
+            # å»ºç«‹ä¸€ä¸ªä¿å­˜æ‰€æœ‰ç»“æœçš„list
             all_pred_list = [torch.zeros_like(all_pred).to(self.device) for _ in range(torch.distributed.get_world_size())]
             all_label_list = [torch.zeros_like(all_label).to(self.device) for _ in range(torch.distributed.get_world_size())]
-            # ÓĞgatherº¯Êı µ«¶Ôgather²Ù×÷ ncclÖ»Ö§³Öall_gather,²»Ö§³Ögather
+            # æœ‰gatherå‡½æ•° ä½†å¯¹gatheræ“ä½œ ncclåªæ”¯æŒall_gather,ä¸æ”¯æŒgather
             torch.distributed.all_gather(all_pred_list, all_pred)
             torch.distributed.all_gather(all_label_list, all_label)
 
@@ -549,7 +549,7 @@ class ClassificationModel(BaseModel):
         return acc
 
     def check_if_best(self, cur_eval_res):
-        """¸ù¾İÆÀ¹À½á¹ûÅĞ¶ÏÊÇ·ñ×îÓÅ
+        """æ ¹æ®è¯„ä¼°ç»“æœåˆ¤æ–­æ˜¯å¦æœ€ä¼˜
         """
         if self.best_acc is None or self.best_acc <= cur_eval_res:
             self.best_acc = cur_eval_res
@@ -567,17 +567,17 @@ class Seq2seqModel(BaseModel):
         super(Seq2seqModel, self).__init__(*args, **kwargs)
 
     def generate(self, text, out_max_length=40, beam_size=1, device="cpu", is_poem=False, max_length=256):
-        # ¶Ô Ò»¸ö ¾ä×ÓÉú³ÉÏàÓ¦µÄ½á¹û
-        ## Í¨¹ıÊä³ö×î´ó³¤¶ÈµÃµ½ÊäÈëµÄ×î´ó³¤¶È£¬ÕâÀïÎÊÌâ²»´ó£¬Èç¹û³¬¹ı×î´ó³¤¶È»á½øĞĞ½Ø¶Ï
+        # å¯¹ ä¸€ä¸ª å¥å­ç”Ÿæˆç›¸åº”çš„ç»“æœ
+        ## é€šè¿‡è¾“å‡ºæœ€å¤§é•¿åº¦å¾—åˆ°è¾“å…¥çš„æœ€å¤§é•¿åº¦ï¼Œè¿™é‡Œé—®é¢˜ä¸å¤§ï¼Œå¦‚æœè¶…è¿‡æœ€å¤§é•¿åº¦ä¼šè¿›è¡Œæˆªæ–­
         self.out_max_length = out_max_length
         input_max_length = max_length - out_max_length
 
         # print(text)
-        # token_type_id È«Îª0
+        # token_type_id å…¨ä¸º0
         token_ids, token_type_ids = self.tokenizer.encode(text, max_length=input_max_length)
         token_ids = torch.tensor(token_ids, device=device).view(1, -1)
         token_type_ids = torch.tensor(token_type_ids, device=device).view(1, -1)
-        if is_poem:## ¹ÅÊ«µÄbeam-searchÉÔÓĞ²»Í¬
+        if is_poem:## å¤è¯—çš„beam-searchç¨æœ‰ä¸åŒ
             logging.debug("poem beam_search")
             out_puts_ids = self.beam_search_poem(
                     text,
@@ -606,24 +606,24 @@ class Seq2seqModel(BaseModel):
 
     def beam_search_poem(self, text, token_ids, token_type_ids, word2ix, beam_size=1, device="cpu"):
         """
-        beam-search²Ù×÷
+        beam-searchæ“ä½œ
         """
         yayun_pos = []
         title = text.split("##")[0]
-        if "ÎåÑÔÂÉÊ«" in text:
+        if "äº”è¨€å¾‹è¯—" in text:
             yayun_pos = [10, 22, 34, 46]
-        elif "ÎåÑÔ¾ø¾ä" in text:
+        elif "äº”è¨€ç»å¥" in text:
             yayun_pos = [10, 22]
-        elif "ÆßÑÔÂÉÊ«" in text:
+        elif "ä¸ƒè¨€å¾‹è¯—" in text:
             yayun_pos = [14, 30, 46, 62]
-        elif "ÆßÑÔ¾ø¾ä" in text:
+        elif "ä¸ƒè¨€ç»å¥" in text:
             yayun_pos = [14, 30]
         sep_id = word2ix["[SEP]"]
-        douhao_id = word2ix["£¬"]# ¶ººÅ
+        douhao_id = word2ix["ï¼Œ"]# é€—å·
         ix2word = {v: k for k, v in word2ix.items()}
-        juhao_id = word2ix["¡£"]# ¾äºÅ
+        juhao_id = word2ix["ã€‚"]# å¥å·
         repeat_word = [[] for i in range(beam_size)]
-        # ÓÃÀ´±£´æÊä³öĞòÁĞ
+        # ç”¨æ¥ä¿å­˜è¾“å‡ºåºåˆ—
         output_ids = torch.empty(1, 0, device=device, dtype=torch.long)
         last_chars = None #torch.empty(1, 0, device=device, dtype=torch.long)
         yayun_chars = (-1) * torch.ones(beam_size, dtype=torch.long)
@@ -635,7 +635,7 @@ class Seq2seqModel(BaseModel):
                 #logging.debug("last_chars: {}".format(last_chars))
                 if step == 0:
                     scores, _ = self.model(token_ids, token_type_ids, device=device)
-                    # ÖØ¸´beam-size´Î ÊäÈëids
+                    # é‡å¤beam-sizeæ¬¡ è¾“å…¥ids
                     token_ids = token_ids.view(1, -1).repeat(beam_size, 1)
                     token_type_ids = token_type_ids.view(1, -1).repeat(beam_size, 1)
                 else:
@@ -667,13 +667,13 @@ class Seq2seqModel(BaseModel):
                                         logit_score[i, ix] += 10
     
     
-                logit_score = output_scores.view(-1, 1) + logit_score # ÀÛ¼ÆµÃ·Ö
-                ## È¡topkµÄÊ±ºòÎÒÃÇÊÇÕ¹Æ½ÁËÈ»ºóÔÙÈ¥µ÷ÓÃtopkº¯Êı
-                # Õ¹Æ½
+                logit_score = output_scores.view(-1, 1) + logit_score # ç´¯è®¡å¾—åˆ†
+                ## å–topkçš„æ—¶å€™æˆ‘ä»¬æ˜¯å±•å¹³äº†ç„¶åå†å»è°ƒç”¨topkå‡½æ•°
+                # å±•å¹³
                 logit_score = logit_score.view(-1)
                 hype_score, hype_pos = torch.topk(logit_score, beam_size)
-                indice1 = (hype_pos // scores.shape[-1]) # ĞĞË÷Òı
-                indice2 = (hype_pos % scores.shape[-1]).long().reshape(-1, 1) # ÁĞË÷Òı
+                indice1 = (hype_pos // scores.shape[-1]) # è¡Œç´¢å¼•
+                indice2 = (hype_pos % scores.shape[-1]).long().reshape(-1, 1) # åˆ—ç´¢å¼•
     
                 for index, each_out in zip(indice1, indice2):
                     index = index.item()
@@ -690,7 +690,7 @@ class Seq2seqModel(BaseModel):
                     if start < beam_size and each_out == douhao_id and last_chars is not None:
                         start += 1
                         #logging.debug("last_chars[{}] = {}".format(index, last_chars[index]))
-                        word = ix2word[last_chars[index].item()]# ÕÒµ½ÉÏÒ»¸ö×Ö·û ¼Ç×¡ÆäÑºÔÏÇé¿ö
+                        word = ix2word[last_chars[index].item()]# æ‰¾åˆ°ä¸Šä¸€ä¸ªå­—ç¬¦ è®°ä½å…¶æŠ¼éŸµæƒ…å†µ
                         for i, each_yayun in enumerate(yayun_list):
                             if word in each_yayun:
                                 yayun_chars[index] = i
@@ -703,7 +703,7 @@ class Seq2seqModel(BaseModel):
                     #     else:
                     #         hype_score[index] -= 5
     
-                # ¸üĞÂµÃ·Ö
+                # æ›´æ–°å¾—åˆ†
                 output_scores = hype_score
     
                 last_chars = indice2
@@ -712,27 +712,27 @@ class Seq2seqModel(BaseModel):
                 new_input_ids = torch.cat([token_ids, output_ids], dim=1)
                 new_token_type_ids = torch.cat([token_type_ids, torch.ones_like(output_ids)], dim=1)
     
-                end_counts = (output_ids == sep_id).sum(1)  # Í³¼Æ³öÏÖµÄend±ê¼Ç
+                end_counts = (output_ids == sep_id).sum(1)  # ç»Ÿè®¡å‡ºç°çš„endæ ‡è®°
                 best_one = output_scores.argmax()
                 if end_counts[best_one] == 1:
-                    # ËµÃ÷³öÏÖÖÕÖ¹ÁË¡«
+                    # è¯´æ˜å‡ºç°ç»ˆæ­¢äº†ï½
                     # print(repeat_word)
                     # print(yayun_chars)
                     return output_ids[best_one]
                 else :
-                    # ±£ÁôÎ´Íê³É²¿·Ö
-                    flag = (end_counts < 1)  # ±ê¼ÇÎ´Íê³ÉĞòÁĞ
-                    if not flag.all():  # Èç¹ûÓĞÒÑÍê³ÉµÄ
+                    # ä¿ç•™æœªå®Œæˆéƒ¨åˆ†
+                    flag = (end_counts < 1)  # æ ‡è®°æœªå®Œæˆåºåˆ—
+                    if not flag.all():  # å¦‚æœæœ‰å·²å®Œæˆçš„
                         token_ids = token_ids[flag]
                         token_type_ids = token_type_ids[flag]
                         last_chars = last_chars[flag]
                         yayun_chars = yayun_chars[flag]
                         new_input_ids = new_input_ids[flag]
                         new_token_type_ids = new_token_type_ids[flag]
-                        output_ids = output_ids[flag]  # ÈÓµôÒÑÍê³ÉĞòÁĞ
-                        output_scores = output_scores[flag]  # ÈÓµôÒÑÍê³ÉĞòÁĞ
-                        end_counts = end_counts[flag]  # ÈÓµôÒÑÍê³Éend¼ÆÊı
-                        beam_size = flag.sum()  # topkÏàÓ¦±ä»¯
+                        output_ids = output_ids[flag]  # æ‰”æ‰å·²å®Œæˆåºåˆ—
+                        output_scores = output_scores[flag]  # æ‰”æ‰å·²å®Œæˆåºåˆ—
+                        end_counts = end_counts[flag]  # æ‰”æ‰å·²å®Œæˆendè®¡æ•°
+                        beam_size = flag.sum()  # topkç›¸åº”å˜åŒ–
                         flag = flag.long()
     
                         new_repeat_word = []
@@ -749,9 +749,9 @@ class Seq2seqModel(BaseModel):
 
     def beam_search(self, token_ids, token_type_ids, stop_id, beam_size=1, device='cpu'):
         """
-        beam-search²Ù×÷
+        beam-searchæ“ä½œ
         """
-        # Ò»´ÎÖ»ÊäÈëÒ»¸ö
+        # ä¸€æ¬¡åªè¾“å…¥ä¸€ä¸ª
         # batch_size = 1
 
         # token_ids shape: [batch_size, seq_length]
@@ -764,20 +764,20 @@ class Seq2seqModel(BaseModel):
 
         #sep_id = word2ix["[SEP]"]
 
-        # ÓÃÀ´±£´æÊä³öĞòÁĞ
+        # ç”¨æ¥ä¿å­˜è¾“å‡ºåºåˆ—
         output_ids = torch.empty(1, 0, device=self.device, dtype=torch.long)
         logging.debug("output_ids: {}".format(output_ids))
         logging.debug("output_ids shape: {}".format(output_ids.shape))
-        # ÓÃÀ´±£´æÀÛ¼ÆµÃ·Ö
+        # ç”¨æ¥ä¿å­˜ç´¯è®¡å¾—åˆ†
 
         self.model.eval()
-        # ¼ÇÂ¼Éú³ÉµÄĞòÁĞ¼°ÆäµÃ·Ö
+        # è®°å½•ç”Ÿæˆçš„åºåˆ—åŠå…¶å¾—åˆ†
         generate_list = list()
         with torch.no_grad():
-            # ³õÊ¼»¯¸÷µÃ·Ö
+            # åˆå§‹åŒ–å„å¾—åˆ†
             # output_scores shape: [batch_size]
             output_scores = torch.zeros(token_ids.shape[0], device=self.device)
-            # ÖØ¸´Éú³É Ö±µ½´ïµ½×î´ó³¤¶È
+            # é‡å¤ç”Ÿæˆ ç›´åˆ°è¾¾åˆ°æœ€å¤§é•¿åº¦
             for step in range(self.out_max_length):
                 logging.debug("beam size: {}".format(beam_size))
                 if step == 0:
@@ -785,7 +785,7 @@ class Seq2seqModel(BaseModel):
                     scores, _ = self.model(token_ids, token_type_ids, device=self.device)
                     logging.debug("scores shape: {}".format(scores.shape))
 
-                    # ÖØ¸´beam-size´Î ÊäÈëids
+                    # é‡å¤beam-sizeæ¬¡ è¾“å…¥ids
                     # token_ids shape: [beam_size, batch_size*seq_length]
                     token_ids = token_ids.view(1, -1).repeat(beam_size, 1)
                     logging.debug("token_ids shape: {}".format(token_ids.shape))
@@ -795,59 +795,59 @@ class Seq2seqModel(BaseModel):
                     logging.debug("token_type_ids shape: {}".format(token_type_ids.shape))
                 else:
                     # TODO score shape: [beam_size, cur_seq_length, self.vocab_size]
-                    # cur_seq_lengthÊÇÖğ½¥±ä»¯µÄ
+                    # cur_seq_lengthæ˜¯é€æ¸å˜åŒ–çš„
                     scores, _ = self.model(new_input_ids, new_token_type_ids, device=self.device)
                     logging.debug("scores shape: {}".format(scores.shape))
 
-                # Ö»È¡×îºóÒ»¸öÊä³öÔÚvocabÉÏµÄscore
+                # åªå–æœ€åä¸€ä¸ªè¾“å‡ºåœ¨vocabä¸Šçš„score
                 # logit_score shape: [batch_size, self.vocab_size]
                 logit_score = torch.log_softmax(scores[:, -1], dim=-1)
                 logging.debug("logit_score shape: {}".format(logit_score.shape))
 
                 # logit_score shape: [batch_size, self.vocab_size]
-                logit_score = output_scores.view(-1, 1) + logit_score # ÀÛ¼ÆµÃ·Ö
+                logit_score = output_scores.view(-1, 1) + logit_score # ç´¯è®¡å¾—åˆ†
                 logging.debug("logit_score shape: {}".format(logit_score.shape))
 
-                ## È¡topkµÄÊ±ºòÎÒÃÇÊÇÕ¹Æ½ÁËÈ»ºóÔÙÈ¥µ÷ÓÃtopkº¯Êı
-                # Õ¹Æ½
-                # ÕâÊÇbeam_sizeÖÖ½á¹û¸÷vocabµÄ½á¹û´òÆ½
+                ## å–topkçš„æ—¶å€™æˆ‘ä»¬æ˜¯å±•å¹³äº†ç„¶åå†å»è°ƒç”¨topkå‡½æ•°
+                # å±•å¹³
+                # è¿™æ˜¯beam_sizeç§ç»“æœå„vocabçš„ç»“æœæ‰“å¹³
                 logit_score = logit_score.view(-1)
-                # ÕÒµ½topkµÄÖµºÍÎ»ÖÃ
+                # æ‰¾åˆ°topkçš„å€¼å’Œä½ç½®
                 hype_score, hype_pos = torch.topk(logit_score, beam_size)
 
-                # ¸ù¾İ´òÆ½ºóµÄÎ»ÖÃ ÕÒµ½Æä´òÆ½Ç°µÄĞĞÁĞÎ»ÖÃ
-                # ĞĞÎ»ÖÃÆäÊµÊÇbeam_sizeÖĞ µÄµÚ¼¸¸öbeam ĞĞÎ»ÖÃ¿ÉÄÜÓĞÖØ¸´
-                # ÁĞÎ»ÖÃÆäÊµÊÇµ±Ç°beamÏÂµÄvocab_id vocab_idÒ²¿ÉÄÜÓĞÖØ¸´
-                indice1 = (hype_pos // scores.shape[-1]) # ĞĞË÷Òı
+                # æ ¹æ®æ‰“å¹³åçš„ä½ç½® æ‰¾åˆ°å…¶æ‰“å¹³å‰çš„è¡Œåˆ—ä½ç½®
+                # è¡Œä½ç½®å…¶å®æ˜¯beam_sizeä¸­ çš„ç¬¬å‡ ä¸ªbeam è¡Œä½ç½®å¯èƒ½æœ‰é‡å¤
+                # åˆ—ä½ç½®å…¶å®æ˜¯å½“å‰beamä¸‹çš„vocab_id vocab_idä¹Ÿå¯èƒ½æœ‰é‡å¤
+                indice1 = (hype_pos // scores.shape[-1]) # è¡Œç´¢å¼•
                 logging.debug("indice1: {}".format(indice1))
-                indice2 = (hype_pos % scores.shape[-1]).long().reshape(-1, 1) # ÁĞË÷Òı
+                indice2 = (hype_pos % scores.shape[-1]).long().reshape(-1, 1) # åˆ—ç´¢å¼•
                 logging.debug("indice2: {}".format(indice2))
 
-                # ¸üĞÂµÃ·Ö
+                # æ›´æ–°å¾—åˆ†
                 # output_scores shape: [beam_size]
                 output_scores = hype_score
                 logging.debug("output_scores: {}".format(output_scores))
 
-                # ¸üĞÂoutput_ids
-                # Í¨¹ıindice1Ñ¡ÊÇÄÄ¸öbeam
-                # Í¨¹ıindice2Ñ¡µ±Ç°beam¼ÓÄÄ¸övocab
+                # æ›´æ–°output_ids
+                # é€šè¿‡indice1é€‰æ˜¯å“ªä¸ªbeam
+                # é€šè¿‡indice2é€‰å½“å‰beamåŠ å“ªä¸ªvocab
                 # output_ids shape: [beam_size, cur_seq_length]
                 output_ids = torch.cat([output_ids[indice1], indice2], dim=1).long()
                 logging.debug("output_ids: {}".format(output_ids))
 
                 # new_input_ids shape: [beam_size, cur_seq_length]
-                # token_idsÊÇ¹Ì¶¨Ô­ÊäÈë
-                # output_idsÊÇµ±Ç°beam_searchÁôÏÂµÄbeam_size¸öºòÑ¡Â·¾¶
+                # token_idsæ˜¯å›ºå®šåŸè¾“å…¥
+                # output_idsæ˜¯å½“å‰beam_searchç•™ä¸‹çš„beam_sizeä¸ªå€™é€‰è·¯å¾„
                 new_input_ids = torch.cat([token_ids, output_ids], dim=1)
                 logging.debug("new_input_ids shape: {}".format(new_input_ids.shape))
 
                 # new_input_ids shape: [beam_size, cur_seq_length]
-                # output_idsµÄtypeÈ«Îª1
+                # output_idsçš„typeå…¨ä¸º1
                 new_token_type_ids = torch.cat([token_type_ids, torch.ones_like(output_ids)], dim=1)
                 logging.debug("new_token_type_ids shape: {}".format(new_token_type_ids.shape))
 
-                # ¼ÇÂ¼µ±Ç°output_idsÖĞÓĞsep_idµÄÇé¿ö
-                end_counts = (output_ids == stop_id).sum(dim=1)  # Í³¼Æ³öÏÖµÄend±ê¼Ç
+                # è®°å½•å½“å‰output_idsä¸­æœ‰sep_idçš„æƒ…å†µ
+                end_counts = (output_ids == stop_id).sum(dim=1)  # ç»Ÿè®¡å‡ºç°çš„endæ ‡è®°
                 end_flag = (end_counts > 0)
 
                 for end_sequence, end_score in zip(output_ids[end_flag], output_scores[end_flag]):
@@ -856,16 +856,16 @@ class Seq2seqModel(BaseModel):
                     #logging.info(end_score.detach().cpu().numpy())
                     generate_list.append((end_sequence, end_score.detach().cpu().numpy()))
 
-                # È¥³ıÒÑÍê³ÉµÄĞòÁĞ
+                # å»é™¤å·²å®Œæˆçš„åºåˆ—
                 continue_flag = (end_counts == 0)
                 token_ids = token_ids[continue_flag]
                 token_type_ids = token_type_ids[continue_flag]
                 new_input_ids = new_input_ids[continue_flag]
                 new_token_type_ids = new_token_type_ids[continue_flag]
-                output_ids = output_ids[continue_flag]  # ÈÓµôÒÑÍê³ÉĞòÁĞ
-                output_scores = output_scores[continue_flag]  # ÈÓµôÒÑÍê³ÉĞòÁĞ
-                end_counts = end_counts[continue_flag]  # ÈÓµôÒÑÍê³Éend¼ÆÊı
-                beam_size = continue_flag.sum()  # topkÏàÓ¦±ä»¯
+                output_ids = output_ids[continue_flag]  # æ‰”æ‰å·²å®Œæˆåºåˆ—
+                output_scores = output_scores[continue_flag]  # æ‰”æ‰å·²å®Œæˆåºåˆ—
+                end_counts = end_counts[continue_flag]  # æ‰”æ‰å·²å®Œæˆendè®¡æ•°
+                beam_size = continue_flag.sum()  # topkç›¸åº”å˜åŒ–
                 logging.debug("beam size: {}".format(beam_size))
 
                 if beam_size == 0:
@@ -873,33 +873,33 @@ class Seq2seqModel(BaseModel):
 
                 #best_one = output_scores.argmax()
                 #if end_counts[best_one] == 1:
-                #    # Èç¹ûµ±Ç°·ÖÊı×îÓÅµÄÒÑ½áÊø ÔòÑ¡µ±Ç°¸Ãbeam
-                #    # ËµÃ÷³öÏÖÖÕÖ¹ÁË¡«
+                #    # å¦‚æœå½“å‰åˆ†æ•°æœ€ä¼˜çš„å·²ç»“æŸ åˆ™é€‰å½“å‰è¯¥beam
+                #    # è¯´æ˜å‡ºç°ç»ˆæ­¢äº†ï½
                 #    return output_ids[best_one]
                 #else :
-                #    # ·ñÔò È¥³ı³öÏÖsep_idµÄĞòÁĞ
-                #    flag = (end_counts < 1)  # ±ê¼ÇÎ´Íê³ÉĞòÁĞ
-                #    if not flag.all():  # Èç¹ûÓĞÒÑÍê³ÉµÄ
+                #    # å¦åˆ™ å»é™¤å‡ºç°sep_idçš„åºåˆ—
+                #    flag = (end_counts < 1)  # æ ‡è®°æœªå®Œæˆåºåˆ—
+                #    if not flag.all():  # å¦‚æœæœ‰å·²å®Œæˆçš„
                 #        token_ids = token_ids[flag]
                 #        token_type_ids = token_type_ids[flag]
                 #        new_input_ids = new_input_ids[flag]
                 #        new_token_type_ids = new_token_type_ids[flag]
-                #        output_ids = output_ids[flag]  # ÈÓµôÒÑÍê³ÉĞòÁĞ
-                #        output_scores = output_scores[flag]  # ÈÓµôÒÑÍê³ÉĞòÁĞ
-                #        end_counts = end_counts[flag]  # ÈÓµôÒÑÍê³Éend¼ÆÊı
-                #        beam_size = flag.sum()  # topkÏàÓ¦±ä»¯
+                #        output_ids = output_ids[flag]  # æ‰”æ‰å·²å®Œæˆåºåˆ—
+                #        output_scores = output_scores[flag]  # æ‰”æ‰å·²å®Œæˆåºåˆ—
+                #        end_counts = end_counts[flag]  # æ‰”æ‰å·²å®Œæˆendè®¡æ•°
+                #        beam_size = flag.sum()  # topkç›¸åº”å˜åŒ–
                 #        logging.debug("beam size change")
 
             #return output_ids[output_scores.argmax()]
-            # generate_list°´·ÖÅÅĞò
+            # generate_listæŒ‰åˆ†æ’åº
             generate_list = sorted(generate_list, key=lambda x:x[1], reverse=True)
             return generate_list
 
     def beam_search_old(self, token_ids, token_type_ids, stop_id, beam_size=1, device="cpu"):
         """
-        beam-search²Ù×÷
+        beam-searchæ“ä½œ
         """
-        # Ò»´ÎÖ»ÊäÈëÒ»¸ö
+        # ä¸€æ¬¡åªè¾“å…¥ä¸€ä¸ª
         # batch_size = 1
 
         # token_ids shape: [batch_size, seq_length]
@@ -912,18 +912,18 @@ class Seq2seqModel(BaseModel):
 
         #sep_id = word2ix["[SEP]"]
 
-        # ÓÃÀ´±£´æÊä³öĞòÁĞ
+        # ç”¨æ¥ä¿å­˜è¾“å‡ºåºåˆ—
         output_ids = torch.empty(1, 0, device=device, dtype=torch.long)
         logging.debug("output_ids: {}".format(output_ids))
         logging.debug("output_ids shape: {}".format(output_ids.shape))
-        # ÓÃÀ´±£´æÀÛ¼ÆµÃ·Ö
+        # ç”¨æ¥ä¿å­˜ç´¯è®¡å¾—åˆ†
 
         self.model.eval()
         with torch.no_grad():
-            # ³õÊ¼»¯¸÷µÃ·Ö
+            # åˆå§‹åŒ–å„å¾—åˆ†
             # output_scores shape: [batch_size]
             output_scores = torch.zeros(token_ids.shape[0], device=device)
-            # ÖØ¸´Éú³É Ö±µ½´ïµ½×î´ó³¤¶È
+            # é‡å¤ç”Ÿæˆ ç›´åˆ°è¾¾åˆ°æœ€å¤§é•¿åº¦
             for step in range(self.out_max_length):
                 logging.debug("beam size: {}".format(beam_size))
                 if step == 0:
@@ -931,7 +931,7 @@ class Seq2seqModel(BaseModel):
                     scores, _ = self.model(token_ids, token_type_ids, device=device)
                     logging.debug("scores shape: {}".format(scores.shape))
 
-                    # ÖØ¸´beam-size´Î ÊäÈëids
+                    # é‡å¤beam-sizeæ¬¡ è¾“å…¥ids
                     # token_ids shape: [beam_size, batch_size*seq_length]
                     token_ids = token_ids.view(1, -1).repeat(beam_size, 1)
                     logging.debug("token_ids shape: {}".format(token_ids.shape))
@@ -941,76 +941,76 @@ class Seq2seqModel(BaseModel):
                     logging.debug("token_type_ids shape: {}".format(token_type_ids.shape))
                 else:
                     # TODO score shape: [beam_size, cur_seq_length, self.vocab_size]
-                    # cur_seq_lengthÊÇÖğ½¥±ä»¯µÄ
+                    # cur_seq_lengthæ˜¯é€æ¸å˜åŒ–çš„
                     scores, _ = self.model(new_input_ids, new_token_type_ids, device=device)
                     logging.debug("scores shape: {}".format(scores.shape))
 
-                # Ö»È¡×îºóÒ»¸öÊä³öÔÚvocabÉÏµÄscore
+                # åªå–æœ€åä¸€ä¸ªè¾“å‡ºåœ¨vocabä¸Šçš„score
                 # logit_score shape: [batch_size, self.vocab_size]
                 logit_score = torch.log_softmax(scores[:, -1], dim=-1)
                 logging.debug("logit_score shape: {}".format(logit_score.shape))
 
                 # logit_score shape: [batch_size, self.vocab_size]
-                logit_score = output_scores.view(-1, 1) + logit_score # ÀÛ¼ÆµÃ·Ö
+                logit_score = output_scores.view(-1, 1) + logit_score # ç´¯è®¡å¾—åˆ†
                 logging.debug("logit_score shape: {}".format(logit_score.shape))
 
-                ## È¡topkµÄÊ±ºòÎÒÃÇÊÇÕ¹Æ½ÁËÈ»ºóÔÙÈ¥µ÷ÓÃtopkº¯Êı
-                # Õ¹Æ½
-                # ÕâÊÇbeam_sizeÖÖ½á¹û¸÷vocabµÄ½á¹û´òÆ½
+                ## å–topkçš„æ—¶å€™æˆ‘ä»¬æ˜¯å±•å¹³äº†ç„¶åå†å»è°ƒç”¨topkå‡½æ•°
+                # å±•å¹³
+                # è¿™æ˜¯beam_sizeç§ç»“æœå„vocabçš„ç»“æœæ‰“å¹³
                 logit_score = logit_score.view(-1)
-                # ÕÒµ½topkµÄÖµºÍÎ»ÖÃ
+                # æ‰¾åˆ°topkçš„å€¼å’Œä½ç½®
                 hype_score, hype_pos = torch.topk(logit_score, beam_size)
 
-                # ¸ù¾İ´òÆ½ºóµÄÎ»ÖÃ ÕÒµ½Æä´òÆ½Ç°µÄĞĞÁĞÎ»ÖÃ
-                # ĞĞÎ»ÖÃÆäÊµÊÇbeam_sizeÖĞ µÄµÚ¼¸¸öbeam ĞĞÎ»ÖÃ¿ÉÄÜÓĞÖØ¸´
-                # ÁĞÎ»ÖÃÆäÊµÊÇµ±Ç°beamÏÂµÄvocab_id vocab_idÒ²¿ÉÄÜÓĞÖØ¸´
-                indice1 = (hype_pos // scores.shape[-1]) # ĞĞË÷Òı
+                # æ ¹æ®æ‰“å¹³åçš„ä½ç½® æ‰¾åˆ°å…¶æ‰“å¹³å‰çš„è¡Œåˆ—ä½ç½®
+                # è¡Œä½ç½®å…¶å®æ˜¯beam_sizeä¸­ çš„ç¬¬å‡ ä¸ªbeam è¡Œä½ç½®å¯èƒ½æœ‰é‡å¤
+                # åˆ—ä½ç½®å…¶å®æ˜¯å½“å‰beamä¸‹çš„vocab_id vocab_idä¹Ÿå¯èƒ½æœ‰é‡å¤
+                indice1 = (hype_pos // scores.shape[-1]) # è¡Œç´¢å¼•
                 logging.debug("indice1: {}".format(indice1))
-                indice2 = (hype_pos % scores.shape[-1]).long().reshape(-1, 1) # ÁĞË÷Òı
+                indice2 = (hype_pos % scores.shape[-1]).long().reshape(-1, 1) # åˆ—ç´¢å¼•
                 logging.debug("indice2: {}".format(indice2))
 
-                # ¸üĞÂµÃ·Ö
+                # æ›´æ–°å¾—åˆ†
                 # output_scores shape: [beam_size]
                 output_scores = hype_score
                 logging.debug("output_scores: {}".format(output_scores))
 
-                # ¸üĞÂoutput_ids
-                # Í¨¹ıindice1Ñ¡ÊÇÄÄ¸öbeam
-                # Í¨¹ıindice2Ñ¡µ±Ç°beam¼ÓÄÄ¸övocab
+                # æ›´æ–°output_ids
+                # é€šè¿‡indice1é€‰æ˜¯å“ªä¸ªbeam
+                # é€šè¿‡indice2é€‰å½“å‰beamåŠ å“ªä¸ªvocab
                 # output_ids shape: [beam_size, cur_seq_length]
                 output_ids = torch.cat([output_ids[indice1], indice2], dim=1).long()
                 logging.debug("output_ids: {}".format(output_ids))
 
                 # new_input_ids shape: [beam_size, cur_seq_length]
-                # token_idsÊÇ¹Ì¶¨Ô­ÊäÈë
-                # output_idsÊÇµ±Ç°beam_searchÁôÏÂµÄbeam_size¸öºòÑ¡Â·¾¶
+                # token_idsæ˜¯å›ºå®šåŸè¾“å…¥
+                # output_idsæ˜¯å½“å‰beam_searchç•™ä¸‹çš„beam_sizeä¸ªå€™é€‰è·¯å¾„
                 new_input_ids = torch.cat([token_ids, output_ids], dim=1)
                 logging.debug("new_input_ids shape: {}".format(new_input_ids.shape))
 
                 # new_input_ids shape: [beam_size, cur_seq_length]
-                # output_idsµÄtypeÈ«Îª1
+                # output_idsçš„typeå…¨ä¸º1
                 new_token_type_ids = torch.cat([token_type_ids, torch.ones_like(output_ids)], dim=1)
                 logging.debug("new_token_type_ids shape: {}".format(new_token_type_ids.shape))
 
-                # ¼ÇÂ¼µ±Ç°output_idsÖĞÓĞsep_idµÄÇé¿ö
-                end_counts = (output_ids == stop_id).sum(1)  # Í³¼Æ³öÏÖµÄend±ê¼Ç
+                # è®°å½•å½“å‰output_idsä¸­æœ‰sep_idçš„æƒ…å†µ
+                end_counts = (output_ids == stop_id).sum(1)  # ç»Ÿè®¡å‡ºç°çš„endæ ‡è®°
                 best_one = output_scores.argmax()
                 if end_counts[best_one] == 1:
-                    # Èç¹ûµ±Ç°·ÖÊı×îÓÅµÄÒÑ½áÊø ÔòÑ¡µ±Ç°¸Ãbeam
-                    # ËµÃ÷³öÏÖÖÕÖ¹ÁË¡«
+                    # å¦‚æœå½“å‰åˆ†æ•°æœ€ä¼˜çš„å·²ç»“æŸ åˆ™é€‰å½“å‰è¯¥beam
+                    # è¯´æ˜å‡ºç°ç»ˆæ­¢äº†ï½
                     return output_ids[best_one]
                 else :
-                    # ·ñÔò È¥³ı³öÏÖsep_idµÄĞòÁĞ
-                    flag = (end_counts < 1)  # ±ê¼ÇÎ´Íê³ÉĞòÁĞ
-                    if not flag.all():  # Èç¹ûÓĞÒÑÍê³ÉµÄ
+                    # å¦åˆ™ å»é™¤å‡ºç°sep_idçš„åºåˆ—
+                    flag = (end_counts < 1)  # æ ‡è®°æœªå®Œæˆåºåˆ—
+                    if not flag.all():  # å¦‚æœæœ‰å·²å®Œæˆçš„
                         token_ids = token_ids[flag]
                         token_type_ids = token_type_ids[flag]
                         new_input_ids = new_input_ids[flag]
                         new_token_type_ids = new_token_type_ids[flag]
-                        output_ids = output_ids[flag]  # ÈÓµôÒÑÍê³ÉĞòÁĞ
-                        output_scores = output_scores[flag]  # ÈÓµôÒÑÍê³ÉĞòÁĞ
-                        end_counts = end_counts[flag]  # ÈÓµôÒÑÍê³Éend¼ÆÊı
-                        beam_size = flag.sum()  # topkÏàÓ¦±ä»¯
+                        output_ids = output_ids[flag]  # æ‰”æ‰å·²å®Œæˆåºåˆ—
+                        output_scores = output_scores[flag]  # æ‰”æ‰å·²å®Œæˆåºåˆ—
+                        end_counts = end_counts[flag]  # æ‰”æ‰å·²å®Œæˆendè®¡æ•°
+                        beam_size = flag.sum()  # topkç›¸åº”å˜åŒ–
                         logging.debug("beam size change")
 
             return output_ids[output_scores.argmax()]
@@ -1018,7 +1018,7 @@ class Seq2seqModel(BaseModel):
 
 class BertSeq2seqModel(Seq2seqModel):
     def __init__(self, *args, **kwargs):
-        """³õÊ¼»¯
+        """åˆå§‹åŒ–
         """
         super(BertSeq2seqModel, self).__init__(*args, **kwargs)
         self.min_loss = None
@@ -1030,15 +1030,15 @@ class BertSeq2seqModel(Seq2seqModel):
                 labels=target_ids,
                 device=self.device)
 
-        ## predictionsÈ¥³ıÁË¶Ô×îºóÒ»¸ösepµÄÔ¤²â½á¹û
-        ## predictionsÃ¿¸öÎ»ÖÃ¶¼ÊÇ¶Ôtoken_idsµÄÏÂ¸öÎ»ÖÃµÄÔ¤²â
-        ## ¼´¶ÔÓÚÄ³Ò»¸öÔ¤²âprediction[i]£¬Æä¶ÔÓ¦Ô¤²âµÄÊÇtoken_id[i+1]
-        ## Òò´ËÎÒÃÇĞèÒªµÄÊÇpredictionµÄ·¶Î§£¬ÆäÊµÊÇtoken_type_ids×óÒÆÒ»Î»£¬µÃµ½pred_mask
-        ## ´ËÊ±pred_maskÖĞÎª1µÄÊÇĞèÒª¿¼ÂÇµÄÔ¤²â½á¹û
+        ## predictionså»é™¤äº†å¯¹æœ€åä¸€ä¸ªsepçš„é¢„æµ‹ç»“æœ
+        ## predictionsæ¯ä¸ªä½ç½®éƒ½æ˜¯å¯¹token_idsçš„ä¸‹ä¸ªä½ç½®çš„é¢„æµ‹
+        ## å³å¯¹äºæŸä¸€ä¸ªé¢„æµ‹prediction[i]ï¼Œå…¶å¯¹åº”é¢„æµ‹çš„æ˜¯token_id[i+1]
+        ## å› æ­¤æˆ‘ä»¬éœ€è¦çš„æ˜¯predictionçš„èŒƒå›´ï¼Œå…¶å®æ˜¯token_type_idså·¦ç§»ä¸€ä½ï¼Œå¾—åˆ°pred_mask
+        ## æ­¤æ—¶pred_maskä¸­ä¸º1çš„æ˜¯éœ€è¦è€ƒè™‘çš„é¢„æµ‹ç»“æœ
         #pred_mask = token_type_ids[:, 1:].contiguous()
 
-        ## ÕâÀïÒªÉú³ÉÊ«µÄÊ±ºò ¶ÔÖØ¸´Éú³ÉµÄid½øĞĞ³Í·£
-        # TODO Êµ¼ÊĞ§¹û²¢²»ºÃ Ã¿¾äÊ«¶¼ÓĞÖØ¸´Á½´ÎµÄ±êµã
+        ## è¿™é‡Œè¦ç”Ÿæˆè¯—çš„æ—¶å€™ å¯¹é‡å¤ç”Ÿæˆçš„idè¿›è¡Œæƒ©ç½š
+        # TODO å®é™…æ•ˆæœå¹¶ä¸å¥½ æ¯å¥è¯—éƒ½æœ‰é‡å¤ä¸¤æ¬¡çš„æ ‡ç‚¹
         #logging.info("loss: {}".format(loss))
         #duplicate_loss = self.get_duplicate_loss(predictions, token_type_ids)
         #logging.info("duplicate_loss: {}".format(duplicate_loss))
@@ -1067,26 +1067,26 @@ class BertSeq2seqModel(Seq2seqModel):
         logging.debug("temp_t shape: {}".format(temp_t.shape))
 
         # diff shape: [batch_size, seq_length, seq_length]
-        # diffÖĞÎª0µÄ±íÊ¾ÏàÍ¬ ¼´diff[k][i][j]==0±íÊ¾µÚkÑù±¾ÖĞ£¬Î»ÖÃiºÍÎ»ÖÃjÏàÍ¬
+        # diffä¸­ä¸º0çš„è¡¨ç¤ºç›¸åŒ å³diff[k][i][j]==0è¡¨ç¤ºç¬¬kæ ·æœ¬ä¸­ï¼Œä½ç½®iå’Œä½ç½®jç›¸åŒ
         diff = temp - temp_t
         logging.debug("diff shape: {}".format(diff.shape))
-        # ½«diffÖĞ²»Îª0µÄÖÃÁã£¬Îª0µÄÖÃ1
+        # å°†diffä¸­ä¸ä¸º0çš„ç½®é›¶ï¼Œä¸º0çš„ç½®1
         duplicate = torch.where(diff==0, torch.tensor(1, device=self.device), torch.tensor(0, device=self.device))
         logging.debug("duplicate shape: {}".format(duplicate.shape))
-        # Ö»±£ÁôÉÏÈı½Ç ÇÒ²»Áô¶Ô½ÇÏß
-        # Òò´Ëµ±µÚkÑù±¾ÖĞÎ»ÖÃiºÍÎ»ÖÃj(i<j)ÏàÍ¬Ê±£¬Ö»»áÓĞduplicate[k][i][j]=1
-        # ¶øduplicate[k][j][i]ÔÚÏÂÈı½Ç Îª0
-        # ÒâÎª ÖØ¸´Ê±£¬Ö»ÓĞºóÃæ³öÏÖµÄÓĞËğÊ§
+        # åªä¿ç•™ä¸Šä¸‰è§’ ä¸”ä¸ç•™å¯¹è§’çº¿
+        # å› æ­¤å½“ç¬¬kæ ·æœ¬ä¸­ä½ç½®iå’Œä½ç½®j(i<j)ç›¸åŒæ—¶ï¼Œåªä¼šæœ‰duplicate[k][i][j]=1
+        # è€Œduplicate[k][j][i]åœ¨ä¸‹ä¸‰è§’ ä¸º0
+        # æ„ä¸º é‡å¤æ—¶ï¼Œåªæœ‰åé¢å‡ºç°çš„æœ‰æŸå¤±
         duplicate = torch.triu(duplicate, diagonal=1)
         logging.debug("duplicate shape: {}".format(duplicate.shape))
-        # °´ÕÕµÚ¶şÎ¬¾ÛºÏ Ò²ÊÇÒâÎª½«ÖØ¸´µÄËğÊ§ËãÔÚºó³öÏÖµÄÎ»ÖÃÉÏ
-        # ÇÒÎªÏà¼Ó ÒâÎª¶à´ÎÖØ¸´µÄËğÊ§¸üÖØ
+        # æŒ‰ç…§ç¬¬äºŒç»´èšåˆ ä¹Ÿæ˜¯æ„ä¸ºå°†é‡å¤çš„æŸå¤±ç®—åœ¨åå‡ºç°çš„ä½ç½®ä¸Š
+        # ä¸”ä¸ºç›¸åŠ  æ„ä¸ºå¤šæ¬¡é‡å¤çš„æŸå¤±æ›´é‡
         # duplicate_mask shape: [batch_size, seq_length]
         duplicate_mask = duplicate.sum(dim=1)
         logging.debug("duplicate_mask shape: {}".format(duplicate_mask.shape))
         #logging.info("duplicate_mask[:10]: {}".format(duplicate_mask[:10]))
 
-        # ¸ù¾İmask Ö»¿¼ÂÇÖØ¸´µÄÎ»ÖÃ
+        # æ ¹æ®mask åªè€ƒè™‘é‡å¤çš„ä½ç½®
         # duplicate_loss shape: [batch_size, seq_length]
         duplicate_loss = max_values * duplicate_mask
         logging.debug("duplicate_loss shape: {}".format(duplicate_loss.shape))
@@ -1096,12 +1096,12 @@ class BertSeq2seqModel(Seq2seqModel):
 
         duplicate_loss = (duplicate_loss * target_mask).sum() / target_mask.sum()
 
-        ## Í¬batch_sizeµÄduplicate_lossÏà¼Ó
-        ## ¿çbatch_sizeµÄÆ½¾ù
+        ## åŒbatch_sizeçš„duplicate_lossç›¸åŠ 
+        ## è·¨batch_sizeçš„å¹³å‡
         #duplicate_loss = duplicate_loss.sum(dim=1).mean()
         logging.debug("duplicate_loss shape: {}".format(duplicate_loss.shape))
 
-        # ·µ»Ø¶àµÄ
+        # è¿”å›å¤šçš„
         return duplicate_loss
 
     def train(self, *args, **kwargs):
@@ -1113,12 +1113,12 @@ class BertSeq2seqModel(Seq2seqModel):
         cur_eval_step = 0
         start_time = time.time()
         loss_list = list()
-        # ÑéÖ¤Ê±²»±£´æ·´ÏòµÄÌİ¶È
+        # éªŒè¯æ—¶ä¸ä¿å­˜åå‘çš„æ¢¯åº¦
         with torch.no_grad():
             for batch in eval_dataloader:
                 cur_eval_step += 1
                 loss = self.get_loss(*batch)
-                # ±£´ælossÊ± ÏÈ½«Æädetach ²»È»±£´æµÄ²»Ö»ÊÇloss »¹ÓĞÕû¸ö¼ÆËãÍ¼
+                # ä¿å­˜lossæ—¶ å…ˆå°†å…¶detach ä¸ç„¶ä¿å­˜çš„ä¸åªæ˜¯loss è¿˜æœ‰æ•´ä¸ªè®¡ç®—å›¾
                 loss_list.append(loss.detach().item())
                 if cur_eval_step % print_step == 0:
                     cost_time = time.time() - start_time
@@ -1127,19 +1127,19 @@ class BertSeq2seqModel(Seq2seqModel):
                             % (cur_eval_step, cost_time, speed))
         loss_mean = np.mean(loss_list)
         if self.distributed:
-            # µ±·Ö²¼Ê½ÑµÁ·Ê± Èç¹ûÒª¿¼ÂÇÈ«²¿µÄloss
-            # ÔòÈçÏÂ²Ù×÷
+            # å½“åˆ†å¸ƒå¼è®­ç»ƒæ—¶ å¦‚æœè¦è€ƒè™‘å…¨éƒ¨çš„loss
+            # åˆ™å¦‚ä¸‹æ“ä½œ
             if gather_loss:
                 loss_tensor = torch.tensor(loss_mean).to(self.device)
-                # ÕâÀïÖ»´òÓ¡master½ø³ÌµÄloss ËùÒÔÖ»ĞèÒªreduceµ½rankÎª0µÄ½ø³Ì
-                # Èç¹ûÒªËùÓĞ½ø³Ìloss_tensorÍ¬²½ ÓÃall_reduce
+                # è¿™é‡Œåªæ‰“å°masterè¿›ç¨‹çš„loss æ‰€ä»¥åªéœ€è¦reduceåˆ°rankä¸º0çš„è¿›ç¨‹
+                # å¦‚æœè¦æ‰€æœ‰è¿›ç¨‹loss_tensoråŒæ­¥ ç”¨all_reduce
                 torch.distributed.reduce(loss_tensor, 0, op=torch.distributed.ReduceOp.SUM)
                 if self.is_master:
                     logging.debug("rank {} gather loss total= {}.".format(self.local_rank, loss_tensor))
                     loss_mean = loss_tensor / torch.distributed.get_world_size()
                     logging.infer("rank {} gather loss = {}.".format(self.local_rank, loss_mean))
             elif self.is_master:
-                # ·ñÔòÖ»ÓĞmaster½ø³Ì´òÓ¡loss
+                # å¦åˆ™åªæœ‰masterè¿›ç¨‹æ‰“å°loss
                 logging.info("rank {} local loss = {}.".format(self.local_rank, loss_mean))
         else:
             logging.info("eval loss = {}.".format(loss_mean))
@@ -1150,7 +1150,7 @@ class BertSeq2seqModel(Seq2seqModel):
         return loss_mean
 
     def check_if_best(self, cur_eval_res):
-        """¸ù¾İÆÀ¹À½á¹ûÅĞ¶ÏÊÇ·ñ×îÓÅ
+        """æ ¹æ®è¯„ä¼°ç»“æœåˆ¤æ–­æ˜¯å¦æœ€ä¼˜
         """
         if self.min_loss is None or self.min_loss >= cur_eval_res:
             self.min_loss = cur_eval_res
@@ -1162,7 +1162,7 @@ class BertSeq2seqModel(Seq2seqModel):
         return self.min_loss
 
     def gen_poem(self, beam_size=3, is_poem=True):
-        test_data = ["±±¹ú·ç¹â##ÎåÑÔ¾ø¾ä", "ÌâÎ÷ÁÖ±Ú##ÆßÑÔ¾ø¾ä", "³¤°²Ôç´º##ÎåÑÔÂÉÊ«"]
+        test_data = ["åŒ—å›½é£å…‰##äº”è¨€ç»å¥", "é¢˜è¥¿æ—å£##ä¸ƒè¨€ç»å¥", "é•¿å®‰æ—©æ˜¥##äº”è¨€å¾‹è¯—"]
         for text in test_data:
             logging.info(text)
             logging.info(self.generate(text, beam_size=beam_size, device=self.device, is_poem=is_poem))

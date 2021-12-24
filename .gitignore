@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+
+*.un~
+*.swp
+
+dataset/
+state_dict/
+output/
+log/

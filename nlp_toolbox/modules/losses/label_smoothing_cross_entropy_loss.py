@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   label_smoothing_cross_entropy_loss.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/01/12 14:05:51
 Desc  :   
 """
@@ -24,6 +24,8 @@ class LabelSmoothingCrossEntropyLoss(nn.Module):
         self.softmax = torch.nn.Softmax(dim=-1)
 
     def forward(self, pred, label):
+        """前向函数
+        """
         num_class = pred.shape[1]
         pred =  self.softmax(pred)
         one_hot_label = nn.functional.one_hot(label, num_class).float()

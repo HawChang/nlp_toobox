@@ -1,17 +1,11 @@
-#   Copyright (c) 2019 PaddlePaddle Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""Arguments for configuration."""
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+File  :   args.py
+Author:   zhanghao(changhaw@126.com)
+Date  :   21/06/24 10:52:38
+Desc  :   
+"""
 
 import six
 import argparse
@@ -26,8 +20,10 @@ def str2bool(v):
     # boolean directly
     return v.lower() in ("true", "t", "1")
 
+
 class ArgumentGroup(object):
-    """ArgumentGroup"""
+    """ArgumentGroup
+    """
     def __init__(self, parser, title, des):
         self._group = parser.add_argument_group(title=title, description=des)
 

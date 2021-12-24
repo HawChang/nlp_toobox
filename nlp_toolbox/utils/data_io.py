@@ -1,20 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: gb18030 -*-
-########################################################################
-# 
-# Copyright (c) 2019 Baidu.com, Inc. All Rights Reserved
-# 
-########################################################################
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
  
 """
 File: data_io.py
-Author: zhanghao55(zhanghao55@baidu.com)
+Author: zhanghao(changhaw@126.com)
 Date: 2019/09/19 20:44:30
 """
 
 import codecs
-from collections import defaultdict
-from collections import namedtuple
+import collections
 import logging
 import numpy as np
 #import paddle.fluid.dygraph as D
@@ -25,27 +19,27 @@ import time
 from sklearn.datasets import dump_svmlight_file
 
 
-def get_data(data_path, read_func=lambda x:x, header=False, encoding="gb18030", verbose=False):
-    """»ñÈ¡¸ÃÎÄ¼ş(»òÄ¿Â¼ÏÂËùÓĞÎÄ¼ş)µÄÊı¾İ
-    [in]  data_path : str, Êı¾İ¼¯µØÖ·
-          verbose   : bool, ÊÇ·ñÕ¹Ê¾´¦ÀíĞÅÏ¢
-    [out] data : list[str], ¸ÃÎÄ¼ş(»òÄ¿Â¼ÏÂËùÓĞÎÄ¼ş)µÄÊı¾İ
+def get_data(data_path, read_func=None, header=False, encoding="gb18030", verbose=False):
+    """è·å–è¯¥æ–‡ä»¶(æˆ–ç›®å½•ä¸‹æ‰€æœ‰æ–‡ä»¶)çš„æ•°æ®
+    [in]  data_path : str, æ•°æ®é›†åœ°å€
+          verbose   : bool, æ˜¯å¦å±•ç¤ºå¤„ç†ä¿¡æ¯
+    [out] data : list[str], è¯¥æ–‡ä»¶(æˆ–ç›®å½•ä¸‹æ‰€æœ‰æ–‡ä»¶)çš„æ•°æ®
     """
     file_list = get_file_name_list(data_path, verbose)
     for file_index, file_path in enumerate(file_list):
         logging.info("get data from file: {}".format(file_path))
         for line_index, line in enumerate(read_from_file(file_path, read_func, encoding)):
             if header and file_index != 0 and line_index == 0:
-                # Èç¹ûÓĞ±íÍ· Ôò³ıµÚÒ»¸öÎÄ¼şÍâ Ã¿¸öÎÄ¼şµÄµÚÒ»ĞĞÊ¡ÂÔ
+                # å¦‚æœæœ‰è¡¨å¤´ åˆ™é™¤ç¬¬ä¸€ä¸ªæ–‡ä»¶å¤– æ¯ä¸ªæ–‡ä»¶çš„ç¬¬ä¸€è¡Œçœç•¥
                 continue
             yield line
 
 
 def get_data_with_header(data_path, sep="\t", encoding="gb18030", verbose=False):
-    """»ñÈ¡¸ÃÎÄ¼ş(»òÄ¿Â¼ÏÂËùÓĞÎÄ¼ş)µÄÊı¾İ
-    [in]  data_path : str, Êı¾İ¼¯µØÖ·
-          verbose   : bool, ÊÇ·ñÕ¹Ê¾´¦ÀíĞÅÏ¢
-    [out] data : list[str], ¸ÃÎÄ¼ş(»òÄ¿Â¼ÏÂËùÓĞÎÄ¼ş)µÄÊı¾İ
+    """è·å–è¯¥æ–‡ä»¶(æˆ–ç›®å½•ä¸‹æ‰€æœ‰æ–‡ä»¶)çš„æ•°æ®
+    [in]  data_path : str, æ•°æ®é›†åœ°å€
+          verbose   : bool, æ˜¯å¦å±•ç¤ºå¤„ç†ä¿¡æ¯
+    [out] data : list[str], è¯¥æ–‡ä»¶(æˆ–ç›®å½•ä¸‹æ‰€æœ‰æ–‡ä»¶)çš„æ•°æ®
     """
     file_list = get_file_name_list(data_path, verbose)
     for file_index, file_path in enumerate(file_list):
@@ -53,35 +47,34 @@ def get_data_with_header(data_path, sep="\t", encoding="gb18030", verbose=False)
         for line_index, line in enumerate(read_from_file(file_path, encoding=encoding)):
             parts = line.rstrip("\n").split(sep)
             if line_index == 0:
-                # Ã¿¸öÎÄ¼şµÄ³õÊ¼»¯±íÍ·
-                Record = namedtuple("record", parts)
+                # æ¯ä¸ªæ–‡ä»¶çš„åˆå§‹åŒ–è¡¨å¤´
+                Record = collections.namedtuple("record", parts)
             else:
                 yield Record(*parts)
 
 
 def get_file_name_list(data_path, verbose=True):
-    """Éú³É¹¹³ÉÊı¾İ¼¯µÄÎÄ¼şÁĞ±í
-        Èç¹ûÊı¾İ¼¯µØÖ·ÊÇÎÄ¼ş£¬Ôò·µ»ØÁĞ±íÖĞÖ»ÓĞ¸ÃÎÄ¼şµØÖ·
-        Èç¹ûÊı¾İ¼¯µØÖ·ÊÇÄ¿Â¼£¬Ôò·µ»ØÁĞ±íÖĞ°üÀ¨¸ÃÄ¿Â¼ÏÂËùÓĞÎÄ¼şÃû³Æ(ºöÂÔ'.'¿ªÍ·µÄÎÄ¼ş)
-    [in]  data_path : str, Êı¾İ¼¯µØÖ·
-          verbose   : bool, ÊÇ·ñÕ¹Ê¾´¦ÀíĞÅÏ¢
-    [out] file_list : list[str], Êı¾İ¼¯ÎÄ¼şÃû³ÆÁĞ±í
+    """ç”Ÿæˆæ„æˆæ•°æ®é›†çš„æ–‡ä»¶åˆ—è¡¨
+        å¦‚æœæ•°æ®é›†åœ°å€æ˜¯æ–‡ä»¶ï¼Œåˆ™è¿”å›åˆ—è¡¨ä¸­åªæœ‰è¯¥æ–‡ä»¶åœ°å€
+        å¦‚æœæ•°æ®é›†åœ°å€æ˜¯ç›®å½•ï¼Œåˆ™è¿”å›åˆ—è¡¨ä¸­åŒ…æ‹¬è¯¥ç›®å½•ä¸‹æ‰€æœ‰æ–‡ä»¶åç§°(å¿½ç•¥'.'å¼€å¤´çš„æ–‡ä»¶)
+    [in]  data_path : str, æ•°æ®é›†åœ°å€
+          verbose   : bool, æ˜¯å¦å±•ç¤ºå¤„ç†ä¿¡æ¯
+    [out] file_list : list[str], æ•°æ®é›†æ–‡ä»¶åç§°åˆ—è¡¨
     """
-    from collections import deque
     file_list = list()
-    path_stack = deque()
+    path_stack = collections.deque()
     path_stack.append(data_path)
     while len(path_stack) != 0:
         cur_path = path_stack.pop()
         if verbose:
             logging.debug("check data path: %s" % cur_path)
-        # Ê×ÏÈ¼ì²éÔ­Ê¼Êı¾İÊÇÎÄ¼ş»¹ÊÇÎÄ¼ş¼Ğ
+        # é¦–å…ˆæ£€æŸ¥åŸå§‹æ•°æ®æ˜¯æ–‡ä»¶è¿˜æ˜¯æ–‡ä»¶å¤¹
         if os.path.isdir(cur_path):
             #logging.debug("data path is directory.")
             files = os.listdir(cur_path)
-            # ±éÀúÎÄ¼ş¼ĞÖĞµÄÃ¿Ò»¸öÎÄ¼ş
+            # éå†æ–‡ä»¶å¤¹ä¸­çš„æ¯ä¸€ä¸ªæ–‡ä»¶
             for file_name in files:
-                # Èç¹ûÎÄ¼şÃûÒÔ.¿ªÍ· ËµÃ÷¸ÃÎÄ¼şÒş²Ø ²»ÊÇÕı³£µÄÊı¾İÎÄ¼ş
+                # å¦‚æœæ–‡ä»¶åä»¥.å¼€å¤´ è¯´æ˜è¯¥æ–‡ä»¶éšè— ä¸æ˜¯æ­£å¸¸çš„æ•°æ®æ–‡ä»¶
                 if len(file_name) == 0 or file_name[0] == ".":
                     continue
                 file_path = os.path.join(cur_path, file_name)
@@ -99,10 +92,10 @@ def get_file_name_list(data_path, verbose=True):
 
 
 def get_column_values(data_dir, fetch_list, sep="\t", encoding="gb18030"):
-    """·µ»ØÖ¸¶¨ÁĞµÄÊı¾İ
-    [in]  data_dir: str, Êı¾İ¼¯µØÖ·
-          fetch_list: list[str], Ö¸¶¨ÁĞµÄÊı¾İ
-    [out] res_list: list[list[str]], ¸÷Ö¸¶¨ÁĞµÄÊı¾İÁĞ±í
+    """è¿”å›æŒ‡å®šåˆ—çš„æ•°æ®
+    [in]  data_dir: str, æ•°æ®é›†åœ°å€
+          fetch_list: list[str], æŒ‡å®šåˆ—çš„æ•°æ®
+    [out] res_list: list[list[str]], å„æŒ‡å®šåˆ—çš„æ•°æ®åˆ—è¡¨
     """
     line_ite = get_data(
             data_dir,
@@ -122,17 +115,17 @@ def get_column_values(data_dir, fetch_list, sep="\t", encoding="gb18030"):
 
 
 def get_attr_values(data_dir, fetch_list, encoding="gb18030"):
-    """·µ»Ø´ø×Ö¶ÎÃûµÄÊı¾İÖĞ£¬Ö¸¶¨×Ö¶ÎµÄÊı¾İ
-    [in]  data_dir: str, Êı¾İ¼¯µØÖ·
-          fetch_list: list[str], Ö¸¶¨µÄ×Ö¶ÎÃûÁĞ±í
-    [out] res_list: list[list[str]], ¸÷Ö¸¶¨µÄ×Ö¶ÎÃûµÄÊı¾İÁĞ±í
+    """è¿”å›å¸¦å­—æ®µåçš„æ•°æ®ä¸­ï¼ŒæŒ‡å®šå­—æ®µçš„æ•°æ®
+    [in]  data_dir: str, æ•°æ®é›†åœ°å€
+          fetch_list: list[str], æŒ‡å®šçš„å­—æ®µååˆ—è¡¨
+    [out] res_list: list[list[str]], å„æŒ‡å®šçš„å­—æ®µåçš„æ•°æ®åˆ—è¡¨
     """
     record_ite = get_data_with_header(
             data_dir,
             encoding=encoding,
             )
 
-    res_dict = defaultdict(list)
+    res_dict = collections.defaultdict(list)
     for cur_record in record_ite:
         for attr_name in fetch_list:
             res_dict[attr_name].append(getattr(cur_record, attr_name))
@@ -144,39 +137,40 @@ def get_attr_values(data_dir, fetch_list, encoding="gb18030"):
     return res_list
 
 
-def read_from_file(file_path, read_func=lambda x:x, encoding="gb18030"):
-    """¼ÓÔØÎÄ¼şÖĞµÄ´Ê
-    [in] file_path: str, ÎÄ¼şµØÖ·
-    [out] word_list: list[str], µ¥´ÊÁĞ±í
+def read_from_file(file_path, read_func=None, encoding="gb18030"):
+    """åŠ è½½æ–‡ä»¶ä¸­çš„è¯
+    [in] file_path: str, æ–‡ä»¶åœ°å€
+    [out] word_list: list[str], å•è¯åˆ—è¡¨
     """
     with codecs.open(file_path, "r", encoding) as rf:
         for line in rf:
-            res = read_func(line.strip("\n"))
+            line = line.strip("\n")
+            res = line if read_func is None else read_func(line)
             if res is not None:
                 yield res
 
 
-def write_to_file(text_list, dst_file_path, write_func=lambda x:x, encoding="gb18030"):
-    """½«ÎÄ±¾ÁĞ±í´æÈëÄ¿µÄÎÄ¼şµØÖ·
-    [in]  text_list: list[str], ÎÄ±¾ÁĞ±í
-          dst_file_path: str, Ä¿µÄÎÄ¼şµØÖ·
+def write_to_file(text_list, dst_file_path, write_func=None, encoding="gb18030"):
+    """å°†æ–‡æœ¬åˆ—è¡¨å­˜å…¥ç›®çš„æ–‡ä»¶åœ°å€
+    [in]  text_list: list[str], æ–‡æœ¬åˆ—è¡¨
+          dst_file_path: str, ç›®çš„æ–‡ä»¶åœ°å€
     """
     with codecs.open(dst_file_path, "w", encoding) as wf:
-        # ²»ÄÜÖ±½ÓÈ«²¿join ÓĞĞ©Êı¾İ¹ı´ó Ó¦¸Ãfor
+        # ä¸èƒ½ç›´æ¥å…¨éƒ¨join æœ‰äº›æ•°æ®è¿‡å¤§ åº”è¯¥for
         #wf.write("\n".join([write_func(x) for x in text_list]))
         for text in text_list:
             if text is None:
                 continue
-            res = write_func(text)
+            res = text if write_func is None else write_func(text) 
             if res is None:
                 continue
             wf.write(res + "\n")
 
 
 def load_pkl(pkl_path):
-    """¼ÓÔØ¶ÔÏó
-    [in]  pkl_path: str, ¶ÔÏóÎÄ¼şµØÖ·
-    [out] obj: class, ¶ÔÏó
+    """åŠ è½½å¯¹è±¡
+    [in]  pkl_path: str, å¯¹è±¡æ–‡ä»¶åœ°å€
+    [out] obj: class, å¯¹è±¡
     """
     logging.debug("load from \"{}\".".format(pkl_path))
     start_time = time.time()
@@ -186,10 +180,10 @@ def load_pkl(pkl_path):
 
 
 def dump_pkl(obj, pkl_path, overwrite=False):
-    """´æ´¢¶ÔÏó
-    [in]  obj: class, ¶ÔÏó
-          pkl_path: str, ¶ÔÏóÎÄ¼şµØÖ·
-          overwrite: bool, ÊÇ·ñ¸²¸Ç£¬FalseÔòµ±ÎÄ¼ş´æÔÚÊ±²»´æ´¢
+    """å­˜å‚¨å¯¹è±¡
+    [in]  obj: class, å¯¹è±¡
+          pkl_path: str, å¯¹è±¡æ–‡ä»¶åœ°å€
+          overwrite: bool, æ˜¯å¦è¦†ç›–ï¼ŒFalseåˆ™å½“æ–‡ä»¶å­˜åœ¨æ—¶ä¸å­˜å‚¨
     """
     if len(pkl_path) == 0 or pkl_path is None:
         logging.warning("pkl_path(\"%s\") illegal." % pkl_path)
@@ -202,23 +196,23 @@ def dump_pkl(obj, pkl_path, overwrite=False):
 
 
 def label_encoder_save_as_class_id(label_encoder, class_id_path, conf_thres=0.5):
-    """½«LabelEncoder¶ÔÏó×ªÎªdef-userÖĞµÄclass_id.txt¸ñÊ½µÄĞÎÊ½´æÈëÖ¸¶¨ÎÄ¼ş
-    [in]  label_encoder: class, ¶ÔÏó
-          class_id_path: str, ´æ´¢ÎÄ¼şµØÖ·
-          conf_thres: float, Àà±ğµÄãĞÖµ ÕâÀïÖ»ÄÜÍ³Ò»ÉèÖÃ
+    """å°†LabelEncoderå¯¹è±¡è½¬ä¸ºdef-userä¸­çš„class_id.txtæ ¼å¼çš„å½¢å¼å­˜å…¥æŒ‡å®šæ–‡ä»¶
+    [in]  label_encoder: class, å¯¹è±¡
+          class_id_path: str, å­˜å‚¨æ–‡ä»¶åœ°å€
+          conf_thres: float, ç±»åˆ«çš„é˜ˆå€¼ è¿™é‡Œåªèƒ½ç»Ÿä¸€è®¾ç½®
     """
-    class_id_list = ["%d\t%s\t%f" % (index, str(class_name), conf_thres) for \
-            index, class_name in enumerate(label_encoder.classes_)]
+    class_id_list = \
+        ["%d\t%s\t%f" % (index, str(class_name), conf_thres) for index, class_name in enumerate(label_encoder.classes_)]
     write_to_file(class_id_list, class_id_path)
     logging.debug("trans label_encoder to \"%s\" succeed." % class_id_path)
 
 
 def dump_libsvm_file(X, y, file_path, zero_based=False):
-    """½«Êı¾İ¼¯×ªÎªlibsvm¸ñÊ½ liblinear¡¢xgboost¡¢lightgbm¶¼¿ÉÒÔ½ÓÊÕ¸Ã¸ñÊ½
-    [in]  X: array-like¡¢sparse matrix, Êı¾İÌØÕ÷
-          y: array-like¡¢sparse matrix, Àà±ğ½á¹û
-          file_path: string¡¢file-like in binary model, ÎÄ¼şµØÖ·£¬»òÕß¶ş½øÖÆĞÎÊ½´ò¿ªµÄ¿ÉĞ´ÎÄ¼ş
-          zero_based: bool, trueÔòÌØÕ÷id´Ó0¿ªÊ¼ liblinearÑµÁ·Ê±ÒªÇóÌØÕ÷id´Ó1¿ªÊ¼ Òò´ËÒ»°ãĞèÒªÎªFalse
+    """å°†æ•°æ®é›†è½¬ä¸ºlibsvmæ ¼å¼ liblinearã€xgboostã€lightgbméƒ½å¯ä»¥æ¥æ”¶è¯¥æ ¼å¼
+    [in]  X: array-likeã€sparse matrix, æ•°æ®ç‰¹å¾
+          y: array-likeã€sparse matrix, ç±»åˆ«ç»“æœ
+          file_path: stringã€file-like in binary model, æ–‡ä»¶åœ°å€ï¼Œæˆ–è€…äºŒè¿›åˆ¶å½¢å¼æ‰“å¼€çš„å¯å†™æ–‡ä»¶
+          zero_based: bool, trueåˆ™ç‰¹å¾idä»0å¼€å§‹ liblinearè®­ç»ƒæ—¶è¦æ±‚ç‰¹å¾idä»1å¼€å§‹ å› æ­¤ä¸€èˆ¬éœ€è¦ä¸ºFalse
     """
     logging.debug("trans libsvm format data to %s." % file_path)
     start_time = time.time()
@@ -227,9 +221,9 @@ def dump_libsvm_file(X, y, file_path, zero_based=False):
 
 
 #def load_model(init_model, model_path):
-#    """ ½«ÑµÁ·µÃµ½µÄ²ÎÊı¼ÓÔØµ½paddle¶¯Ì¬Í¼Ä£ĞÍ½á¹¹ÖĞ
-#    [in] init_model: ÒÑ¹¹ÔìºÃµÄÄ£ĞÍ½á¹¹
-#         model_path: str, Ä£ĞÍµØÖ·(È¥µô.pdparamsºó×º)
+#    """ å°†è®­ç»ƒå¾—åˆ°çš„å‚æ•°åŠ è½½åˆ°paddleåŠ¨æ€å›¾æ¨¡å‹ç»“æ„ä¸­
+#    [in] init_model: å·²æ„é€ å¥½çš„æ¨¡å‹ç»“æ„
+#         model_path: str, æ¨¡å‹åœ°å€(å»æ‰.pdparamsåç¼€)
 #    """
 #    if os.path.exists(model_path + ".pdparams"):
 #        logging.info("load model from {}".format(model_path))
@@ -242,22 +236,22 @@ def dump_libsvm_file(X, y, file_path, zero_based=False):
 
 
 def gen_batch_data(data_iter, batch_size=32, max_seq_len=300, max_ensure=False, with_label=True):
-    """ Éú³ÉÅúÊı¾İ
-    [IN] data_iter: iterable, ¿Éµü´úµÄÊı¾İ
-         batch_size: int, Åú´óĞ¡
-         max_seq_len: int, Êı¾İ×î´ó³¤¶È
-         max_ensure: bool, TrueÔò¹Ì¶¨×î´ó³¤¶È£¬·ñÔò°´¸ÃÅú×î´ó³¤¶È×öpadding
-         with_label: Êı¾İÖĞÊÇ·ñÓĞlabel£¨label²»×öpadding£©
+    """ ç”Ÿæˆæ‰¹æ•°æ®
+    [IN] data_iter: iterable, å¯è¿­ä»£çš„æ•°æ®
+         batch_size: int, æ‰¹å¤§å°
+         max_seq_len: int, æ•°æ®æœ€å¤§é•¿åº¦
+         max_ensure: bool, Trueåˆ™å›ºå®šæœ€å¤§é•¿åº¦ï¼Œå¦åˆ™æŒ‰è¯¥æ‰¹æœ€å¤§é•¿åº¦åšpadding
+         with_label: æ•°æ®ä¸­æ˜¯å¦æœ‰labelï¼ˆlabelä¸åšpaddingï¼‰
     """
     batch_data = list()
 
     def pad(data_list):
         """ padding
-        [IN]  data_list: ´ıpaddingµÄÊı¾İ
-        [OUT] paddingºÃµÄÊı¾İ
+        [IN]  data_list: å¾…paddingçš„æ•°æ®
+        [OUT] paddingå¥½çš„æ•°æ®
         """
-        # ´¦ÀíÑù±¾
-        # È·¶¨µ±Ç°Åú´Î×î´ó³¤¶È
+        # å¤„ç†æ ·æœ¬
+        # ç¡®å®šå½“å‰æ‰¹æ¬¡æœ€å¤§é•¿åº¦
         if max_ensure:
             cur_max_len = max_seq_len
         else:
@@ -268,10 +262,10 @@ def gen_batch_data(data_iter, batch_size=32, max_seq_len=300, max_ensure=False, 
         return [np.pad(x[:cur_max_len], [0, cur_max_len - len(x[:cur_max_len])], mode='constant') for x in data_list]
 
     def batch_process(cur_batch_data, cur_batch_size):
-        """ Éú³É¶ÔÅúÊı¾İ½øĞĞpadding´¦Àí
-        [IN]  cur_batch_data: list(list), ¸ÃÅúÊı¾İ
-              cur_batch_size: int, ¸ÃÅú´óĞ¡
-        [OUT] paddingºÃµÄÅúÊı¾İ
+        """ ç”Ÿæˆå¯¹æ‰¹æ•°æ®è¿›è¡Œpaddingå¤„ç†
+        [IN]  cur_batch_data: list(list), è¯¥æ‰¹æ•°æ®
+              cur_batch_size: int, è¯¥æ‰¹å¤§å°
+        [OUT] paddingå¥½çš„æ‰¹æ•°æ®
         """
         batch_list = list()
         data_lists = zip(*cur_batch_data)
@@ -294,7 +288,7 @@ def gen_batch_data(data_iter, batch_size=32, max_seq_len=300, max_ensure=False, 
 
     for data in data_iter:
         if len(batch_data) == batch_size:
-            # µ±Ç°ÒÑ×é³ÉÒ»¸öbatch
+            # å½“å‰å·²ç»„æˆä¸€ä¸ªbatch
             yield batch_process(batch_data, batch_size)
             batch_data = list()
         batch_data.append(data)

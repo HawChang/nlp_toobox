@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   adversarial_training.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/01/09 20:29:56
 Desc  :   
 """
@@ -12,14 +12,18 @@ import logging
 import torch
 
 
-class FGM():
+class FGM(object):
+    """adversarial trainingç±»
+    """
     def __init__(self, model):
         self.model = model
         self.backup = None
 
     def attack(self, epsilon=1., emb_name='emb.'):
+        """æ‰°ä¹±
+        """
         self.backup = dict()
-        # emb_nameÕâ¸ö²ÎÊıÒª»»³ÉÄãÄ£ĞÍÖĞembeddingµÄ²ÎÊıÃû
+        # emb_nameè¿™ä¸ªå‚æ•°è¦æ¢æˆä½ æ¨¡å‹ä¸­embeddingçš„å‚æ•°å
         for name, param in self.model.named_parameters():
             if param.requires_grad and emb_name in name:
                 #logging.info("cur param name: {}".format(name))
@@ -33,12 +37,12 @@ class FGM():
 
     def restore(self, emb_name=None):
         """
-        emb_nameÎªNone£¬ÔòbackupÖĞÓĞµÄparam¶¼»Ö¸´£¬·ñÔòÖ»»Ö¸´°üº¬emb_nameµÄparam
+        emb_nameä¸ºNoneï¼Œåˆ™backupä¸­æœ‰çš„paraméƒ½æ¢å¤ï¼Œå¦åˆ™åªæ¢å¤åŒ…å«emb_nameçš„param
         """
         if self.backup is None:
             raise ValueError("no backup to restore, should be called after attack")
 
-        # emb_nameÕâ¸ö²ÎÊıÒª»»³ÉÄãÄ£ĞÍÖĞembeddingµÄ²ÎÊıÃû
+        # emb_nameè¿™ä¸ªå‚æ•°è¦æ¢æˆä½ æ¨¡å‹ä¸­embeddingçš„å‚æ•°å
         for name, param in self.model.named_parameters():
             if param.requires_grad:
                 if emb_name is None:

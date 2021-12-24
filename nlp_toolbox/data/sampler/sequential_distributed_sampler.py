@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding:gb18030 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 File  :   sequential_distributed_sampler.py
-Author:   zhanghao55@baidu.com
+Author:   zhanghao(changhaw@126.com)
 Date  :   21/01/12 11:35:40
 Desc  :   
 """
@@ -35,7 +35,8 @@ class SequentialDistributedSampler(torch.utils.data.sampler.Sampler):
         self.num_replicas = num_replicas
         self.rank = rank
         self.batch_size = batch_size
-        self.num_samples = int(math.ceil(len(self.dataset) * 1.0 / self.batch_size / self.num_replicas)) * self.batch_size
+        self.num_samples = int(math.ceil(
+            len(self.dataset) * 1.0 / self.batch_size / self.num_replicas)) * self.batch_size
         self.total_size = self.num_samples * self.num_replicas
         self.epoch = 0
 
@@ -44,13 +45,15 @@ class SequentialDistributedSampler(torch.utils.data.sampler.Sampler):
         # add extra samples to make it evenly divisible
         indices += [indices[-1]] * (self.total_size - len(indices))
         # subsample
-        indices = indices[self.rank * self.num_samples : (self.rank + 1) * self.num_samples]
+        indices = indices[self.rank * self.num_samples: (self.rank + 1) * self.num_samples]
         return iter(indices)
 
     def __len__(self):
         return self.num_samples
 
     def set_epoch(self, epoch):
+        """设定当前epoch
+        """
         self.epoch = epoch
 
 
